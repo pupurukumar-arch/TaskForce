@@ -1,5 +1,10 @@
 import { body } from "express-validator";
-import { AvailableUserRole } from "../utils/constants.js";
+import {
+  AvailableTaskDifficulties,
+  AvailableTaskPriorities,
+  AvailableTaskStatues,
+  AvailableUserRole,
+} from "../utils/constants.js";
 const userRegisterValidator = () => {
   return [
     body("email")
@@ -85,6 +90,58 @@ const addMembertoProjectValidator = () => {
   ];
 };
 
+const updateMemberRoleValidator = () => {
+  return [
+    body("newRole")
+      .trim()
+      .notEmpty()
+      .withMessage("New role is required")
+      .isIn(AvailableUserRole)
+      .withMessage("Role is invalid"),
+  ];
+};
+
+const taskFieldsValidator = (titleRequired) => [
+  titleRequired
+    ? body("title").trim().notEmpty().withMessage("Task title is required")
+    : body("title").optional().trim().notEmpty().withMessage("Task title cannot be empty"),
+  body("description").optional().isString().trim(),
+  body("assignedTo")
+    .optional()
+    .custom((value) => value === "" || /^[a-fA-F0-9]{24}$/.test(value))
+    .withMessage("Assignee must be a valid user id"),
+  body("status").optional().isIn(AvailableTaskStatues).withMessage("Task status is invalid"),
+  body("difficulty")
+    .optional()
+    .isIn(AvailableTaskDifficulties)
+    .withMessage("Task difficulty is invalid"),
+  body("priority")
+    .optional()
+    .isIn(AvailableTaskPriorities)
+    .withMessage("Task priority is invalid"),
+  body("dueDate").optional({ checkFalsy: true }).isISO8601().withMessage("Due date is invalid"),
+];
+
+const createTaskValidator = () => taskFieldsValidator(true);
+const updateTaskValidator = () => taskFieldsValidator(false);
+
+const taskCommentValidator = () => [
+  body("content").trim().notEmpty().withMessage("Comment content is required"),
+];
+
+const noteValidator = () => [
+  body("content").trim().notEmpty().withMessage("Note content is required"),
+];
+
+const createSubtaskValidator = () => [
+  body("title").trim().notEmpty().withMessage("Subtask title is required"),
+];
+
+const updateSubtaskValidator = () => [
+  body("title").optional().trim().notEmpty().withMessage("Subtask title cannot be empty"),
+  body("isCompleted").optional().isBoolean().withMessage("isCompleted must be true or false"),
+];
+
 export {
   userRegisterValidator,
   userLoginValidator,
@@ -94,4 +151,11 @@ export {
   userSkillsValidator,
   createProjectValidator,
   addMembertoProjectValidator,
+  updateMemberRoleValidator,
+  createTaskValidator,
+  updateTaskValidator,
+  taskCommentValidator,
+  noteValidator,
+  createSubtaskValidator,
+  updateSubtaskValidator,
 };

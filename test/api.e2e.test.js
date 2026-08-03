@@ -17,14 +17,21 @@ dotenv.config({ path: ".env" });
 
 const testDatabaseUri = process.env.TEST_MONGO_URI;
 const suffix = `api_test_${Date.now()}`;
-const userIds = [new mongoose.Types.ObjectId(), new mongoose.Types.ObjectId(), new mongoose.Types.ObjectId()];
+const userIds = [
+  new mongoose.Types.ObjectId(),
+  new mongoose.Types.ObjectId(),
+  new mongoose.Types.ObjectId(),
+  new mongoose.Types.ObjectId(),
+];
 let server;
 let baseUrl;
 let admin;
 let member;
 let unverifiedUser;
+let outsider;
 let adminToken;
 let memberToken;
+let outsiderToken;
 let projectId;
 let taskId;
 
@@ -54,7 +61,7 @@ before(async () => {
   await new Promise((resolve) => server.once("listening", resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
 
-  [admin, member, unverifiedUser] = await User.create([
+  [admin, member, unverifiedUser, outsider] = await User.create([
     {
       _id: userIds[0],
       username: `${suffix}_admin`,
@@ -79,6 +86,14 @@ before(async () => {
       password: "TestPassword123!",
       isEmailVerified: false,
     },
+    {
+      _id: userIds[3],
+      username: `${suffix}_outsider`,
+      email: `${suffix}_outsider@example.com`,
+      fullName: "API Test Outsider",
+      password: "TestPassword123!",
+      isEmailVerified: true,
+    },
   ]);
 
   const adminLogin = await request("/auth/login", {
@@ -89,10 +104,16 @@ before(async () => {
     method: "POST",
     body: { email: member.email, password: "TestPassword123!" },
   });
+  const outsiderLogin = await request("/auth/login", {
+    method: "POST",
+    body: { email: outsider.email, password: "TestPassword123!" },
+  });
   assert.equal(adminLogin.status, 200);
   assert.equal(memberLogin.status, 200);
+  assert.equal(outsiderLogin.status, 200);
   adminToken = adminLogin.body.data.accessToken;
   memberToken = memberLogin.body.data.accessToken;
+  outsiderToken = outsiderLogin.body.data.accessToken;
 });
 
 after(async () => {
@@ -157,6 +178,13 @@ test("members cannot create tasks", async () => {
     body: { title: "Member should not create this" },
   });
   assert.equal(response.status, 403);
+});
+
+test("non-members cannot view a project's members", async () => {
+  const response = await request(`/projects/${projectId}/members`, {
+    token: outsiderToken,
+  });
+  assert.equal(response.status, 400);
 });
 
 test("task priority and due-date summary work", async () => {
@@ -224,4 +252,61 @@ test("comments, activity, and notifications are stored for the right users", asy
   const activity = await request(`/projects/${projectId}/activity`, { token: memberToken });
   assert.equal(activity.status, 200);
   assert.ok(activity.body.data.some((item) => item.type === "task_created"));
+});
+
+test("invalid task, comment, note, subtask, and role inputs are rejected", async () => {
+  const blankTask = await request(`/tasks/${projectId}`, {
+    method: "POST",
+    token: adminToken,
+    body: { title: "   " },
+  });
+  assert.equal(blankTask.status, 422);
+
+  const invalidPriority = await request(`/tasks/${projectId}/t/${taskId}`, {
+    method: "PUT",
+    token: adminToken,
+    body: { priority: "urgent" },
+  });
+  assert.equal(invalidPriority.status, 422);
+
+  const blankComment = await request(`/tasks/${projectId}/t/${taskId}/comments`, {
+    method: "POST",
+    token: memberToken,
+    body: { content: "   " },
+  });
+  assert.equal(blankComment.status, 422);
+
+  const blankNote = await request(`/notes/${projectId}`, {
+    method: "POST",
+    token: adminToken,
+    body: { content: "   " },
+  });
+  assert.equal(blankNote.status, 422);
+
+  const blankSubtask = await request(`/tasks/${projectId}/t/${taskId}/subtasks`, {
+    method: "POST",
+    token: adminToken,
+    body: { title: "   " },
+  });
+  assert.equal(blankSubtask.status, 422);
+
+  const createSubtask = await request(`/tasks/${projectId}/t/${taskId}/subtasks`, {
+    method: "POST",
+    token: adminToken,
+    body: { title: "Valid subtask" },
+  });
+  assert.equal(createSubtask.status, 201);
+
+  const invalidSubtaskUpdate = await request(
+    `/tasks/${projectId}/st/${createSubtask.body.data._id}`,
+    { method: "PUT", token: memberToken, body: { title: "" } },
+  );
+  assert.equal(invalidSubtaskUpdate.status, 422);
+
+  const invalidRole = await request(`/projects/${projectId}/members/${member._id}`, {
+    method: "PUT",
+    token: adminToken,
+    body: { newRole: "owner" },
+  });
+  assert.equal(invalidRole.status, 422);
 });
