@@ -187,6 +187,16 @@ Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) 
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
 
+## Automated API tests
+
+The built-in test suite uses Node.js's test runner, so no extra package is required. Set `TEST_MONGO_URI` in `.env` to a separate MongoDB database (for example, `taskforge_test`), then run:
+
+```bash
+npm test
+```
+
+The tests create temporary users and project data only in that test database, verify key API and permission flows, then remove that exact temporary data. They cover login verification, role restrictions, tasks, priorities, due-date summaries, comments, notifications, and activity history.
+
 ## Security note
 
 Do not publish `.env`, MongoDB URIs, SMTP credentials, JWT secrets, or real tokens. `.gitignore` excludes `.env` and `node_modules`.
