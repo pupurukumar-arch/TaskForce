@@ -1,6 +1,9 @@
 import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
+import { Task } from "../models/task.models.js";
+import { Subtask } from "../models/subtask.models.js";
+import { ProjectNote } from "../models/note.models.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -17,15 +20,15 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "projects",
-        localField: "projects",
+        localField: "project",
         foreignField: "_id",
-        as: "projects",
+        as: "project",
         pipeline: [
           {
             $lookup: {
               from: "projectmembers",
               localField: "_id",
-              foreignField: "projects",
+              foreignField: "project",
               as: "projectmembers",
             },
           },
@@ -45,12 +48,12 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $project: {
         project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          members: 1,
-          createdAt: 1,
-          createdBy: 1,
+          _id: "$project._id",
+          name: "$project.name",
+          description: "$project.description",
+          members: "$project.members",
+          createdAt: "$project.createdAt",
+          createdBy: "$project.createdBy",
         },
         role: 1,
         _id: 0,
@@ -120,10 +123,23 @@ const updateProject = asyncHandler(async (req, res) => {
 const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  const project = await Project.findByIdAndDelete(projectId);
+  const project = await Project.findById(projectId);
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
+
+  const tasks = await Task.find({ project: projectId }).select("_id");
+  const taskIds = tasks.map((task) => task._id);
+
+  await Promise.all([
+    Subtask.deleteMany({ task: { $in: taskIds } }),
+    Task.deleteMany({ project: projectId }),
+    ProjectNote.deleteMany({ project: projectId }),
+    ProjectMember.deleteMany({ project: projectId }),
+  ]);
+
+  await project.deleteOne();
+
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project deleted successfully"));
