@@ -15,7 +15,7 @@ const getTasks = asyncHandler(async (req, res) => {
 });
 
 const createTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status } = req.body;
+  const { title, description, assignedTo, status, difficulty } = req.body;
 
   if (assignedTo) {
     const member = await ProjectMember.exists({
@@ -38,6 +38,7 @@ const createTask = asyncHandler(async (req, res) => {
     assignedTo: assignedTo || undefined,
     assignedBy: req.user._id,
     status,
+    difficulty,
     attachments,
   });
 
@@ -59,7 +60,7 @@ const getTaskById = asyncHandler(async (req, res) => {
 });
 
 const updateTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status } = req.body;
+  const { title, description, assignedTo, status, difficulty } = req.body;
   const task = await Task.findOne({ _id: req.params.taskId, project: req.params.projectId });
 
   if (!task) throw new ApiError(404, "Task not found");
@@ -73,6 +74,7 @@ const updateTask = asyncHandler(async (req, res) => {
   if (description !== undefined) task.description = description;
   if (assignedTo !== undefined) task.assignedTo = assignedTo || undefined;
   if (status !== undefined) task.status = status;
+  if (difficulty !== undefined) task.difficulty = difficulty;
   task.attachments.push(
     ...(req.files || []).map((file) => ({
       url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,

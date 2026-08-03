@@ -6,6 +6,7 @@ import {
   getProjects,
   getProjectById,
   getProjectMembers,
+  getMemberTaskSummary,
   updateProject,
   deleteProject,
   updateMemberRole,
@@ -49,6 +50,13 @@ router
     validate,
     addMembersToProject,
   );
+
+router
+  .route("/:projectId/members/:userId/task-summary")
+  .get(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    getMemberTaskSummary,
+  )
 
 router
   .route("/:projectId/members/:userId")

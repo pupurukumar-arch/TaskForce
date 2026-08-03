@@ -9,6 +9,7 @@ import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import { getTaskSummaryForUser } from "../utils/task-summary.js";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -232,6 +233,27 @@ const getProjectMembers = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, projectMembers, "Project members fetched"));
 });
 
+const getMemberTaskSummary = asyncHandler(async (req, res) => {
+  const projectMember = await ProjectMember.findOne({
+    project: req.params.projectId,
+    user: req.params.userId,
+  }).populate("user", "username fullName avatar skills");
+
+  if (!projectMember) {
+    throw new ApiError(404, "Project member not found");
+  }
+
+  const summary = await getTaskSummaryForUser(projectMember.user._id);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { member: projectMember.user, ...summary },
+      "Member task summary fetched successfully",
+    ),
+  );
+});
+
 const updateMemberRole = asyncHandler(async (req, res) => {
   const { projectId, userId } = req.params;
   const { newRole } = req.body;
@@ -308,6 +330,7 @@ export {
   getProjects,
   getProjectById,
   getProjectMembers,
+  getMemberTaskSummary,
   updateProject,
   deleteProject,
   updateMemberRole,

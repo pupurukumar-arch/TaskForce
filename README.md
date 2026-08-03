@@ -86,6 +86,8 @@ Base URL: `http://localhost:3000/api/v1`
 | POST | `/auth/reset-password/:resetToken` | No | `newPassword`; use token from reset link |
 | POST | `/auth/logout` | Yes | Invalidates refresh token |
 | POST | `/auth/current-user` | Yes | Returns logged-in user |
+| PUT | `/auth/profile/skills` | Yes | Saves a member's `skills` array |
+| GET | `/auth/task-summary` | Yes | Returns the current member's assigned-task and in-progress difficulty counts |
 | POST | `/auth/change-password` | Yes | `oldPassword`, `newPassword` |
 | POST | `/auth/resend-email-verification` | Yes | Sends another verification email |
 
@@ -110,6 +112,7 @@ Example registration:
 | PUT | `/projects/:projectId` | Admin | `name`, optional `description` |
 | DELETE | `/projects/:projectId` | Admin | Delete project |
 | GET | `/projects/:projectId/members` | Authenticated | List members |
+| GET | `/projects/:projectId/members/:userId/task-summary` | Admin | View a selected member's workload before assigning a task |
 | POST | `/projects/:projectId/members` | Admin | `email`, `role` |
 | PUT | `/projects/:projectId/members/:userId` | Admin | `newRole` |
 | DELETE | `/projects/:projectId/members/:userId` | Admin | Remove member |
@@ -128,7 +131,7 @@ Example project:
 | Method | Path | Minimum role | Body / notes |
 | --- | --- | --- | --- |
 | GET | `/tasks/:projectId` | Member | List project tasks |
-| POST | `/tasks/:projectId` | Admin or project admin | `multipart/form-data`: `title`, optional `description`, `assignedTo`, `status`, and up to five `attachments` (1 MB each) |
+| POST | `/tasks/:projectId` | Admin or project admin | `multipart/form-data`: `title`, optional `description`, `assignedTo`, `status`, `difficulty`, and up to five `attachments` (1 MB each) |
 | GET | `/tasks/:projectId/t/:taskId` | Member | Get task and subtasks |
 | PUT | `/tasks/:projectId/t/:taskId` | Admin or project admin | Same optional task fields and attachments |
 | DELETE | `/tasks/:projectId/t/:taskId` | Admin or project admin | Delete task and its subtasks |
@@ -136,7 +139,7 @@ Example project:
 | PUT | `/tasks/:projectId/st/:subTaskId` | Member | `isCompleted`; administrators may also set `title` |
 | DELETE | `/tasks/:projectId/st/:subTaskId` | Admin or project admin | Delete subtask |
 
-`status` may be `todo`, `in_progress`, or `done`. If `assignedTo` is supplied, it must be the ID of a member of that project.
+`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. If `assignedTo` is supplied, it must be the ID of a member of that project.
 
 Example task JSON (when not uploading a file):
 
@@ -145,7 +148,8 @@ Example task JSON (when not uploading a file):
   "title": "Create homepage wireframes",
   "description": "Prepare the desktop and mobile flows.",
   "assignedTo": "<project-member-user-id>",
-  "status": "in_progress"
+  "status": "in_progress",
+  "difficulty": "medium"
 }
 ```
 
@@ -161,7 +165,7 @@ Example task JSON (when not uploading a file):
 
 ## Postman
 
-Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 33 routes with variables for the base URL, tokens, and resource IDs.
+Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 36 routes with variables for the base URL, tokens, and resource IDs.
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
 

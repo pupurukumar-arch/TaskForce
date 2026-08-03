@@ -34,6 +34,10 @@ const userSchema = new Schema(
       type: String,
       trim: true,
     },
+    skills: {
+      type: [{ type: String, trim: true }],
+      default: [],
+    },
     password: {
       type: String,
       required: [true, "Password is required"],

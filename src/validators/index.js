@@ -49,6 +49,19 @@ const userResetForgotPasswordValidator = () => {
   return [body("newPassword").notEmpty().withMessage("Password is required")];
 };
 
+const userSkillsValidator = () => {
+  return [
+    body("skills")
+      .isArray({ min: 1 })
+      .withMessage("Skills must be a non-empty array"),
+    body("skills.*")
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("Each skill must be a non-empty string"),
+  ];
+};
+
 const createProjectValidator = () => {
   return [
     body("name").notEmpty().withMessage("Name is required"),
@@ -78,6 +91,7 @@ export {
   userChangeCurrentPasswordValidator,
   userForgotPasswordValidator,
   userResetForgotPasswordValidator,
+  userSkillsValidator,
   createProjectValidator,
   addMembertoProjectValidator,
 };

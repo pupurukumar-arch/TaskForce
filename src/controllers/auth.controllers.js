@@ -9,6 +9,7 @@ import {
 } from "../utils/mail.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { getTaskSummaryForUser } from "../utils/task-summary.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -58,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unHashedToken}`,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
     ),
   });
 
@@ -98,6 +99,10 @@ const login = asyncHandler(async (req, res) => {
 
   if (!isPasswordValid) {
     throw new ApiError(400, "Invalid credentials");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(403, "Please verify your email before logging in");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
@@ -157,6 +162,31 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+});
+
+const updateUserSkills = asyncHandler(async (req, res) => {
+  const skills = [...new Set(req.body.skills.map((skill) => skill.trim()))];
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { skills },
+    { new: true },
+  ).select("-password -refreshToken -emailVerificationToken -emailVerificationExpiry");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Skills updated successfully"));
+});
+
+const getMyTaskSummary = asyncHandler(async (req, res) => {
+  const summary = await getTaskSummaryForUser(req.user._id);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      summary,
+      "Task summary fetched successfully",
+    ),
+  );
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
@@ -220,7 +250,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unHashedToken}`,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
     ),
   });
 
@@ -373,4 +403,6 @@ export {
   forgotPasswordRequest,
   changeCurrentPassword,
   resetForgotPassword,
+  updateUserSkills,
+  getMyTaskSummary,
 };
