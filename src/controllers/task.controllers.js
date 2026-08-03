@@ -1,10 +1,12 @@
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Subtask } from "../models/subtask.models.js";
+import { TaskComment } from "../models/taskcomment.models.js";
 import { Task } from "../models/task.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { UserRolesEnum } from "../utils/constants.js";
+import { recordActivity } from "../utils/activity.js";
 
 const getTasks = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: req.params.projectId })
@@ -14,8 +16,54 @@ const getTasks = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
 });
 
+const getTaskDueSummary = asyncHandler(async (req, res) => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const endOfWeek = new Date(startOfToday);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+  const openTaskFilter = {
+    project: req.params.projectId,
+    dueDate: { $exists: true },
+    status: { $ne: "done" },
+  };
+  const [dueToday, dueThisWeek, overdue] = await Promise.all([
+    Task.find({
+      ...openTaskFilter,
+      dueDate: { $gte: startOfToday, $lt: startOfTomorrow },
+    }).sort({ dueDate: 1 }),
+    Task.find({
+      ...openTaskFilter,
+      dueDate: { $gte: startOfTomorrow, $lt: endOfWeek },
+    }).sort({ dueDate: 1 }),
+    Task.find({
+      ...openTaskFilter,
+      dueDate: { $lt: startOfToday },
+    }).sort({ dueDate: 1 }),
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        dueToday,
+        dueThisWeek,
+        overdue,
+        counts: {
+          dueToday: dueToday.length,
+          dueThisWeek: dueThisWeek.length,
+          overdue: overdue.length,
+        },
+      },
+      "Task due-date summary fetched successfully",
+    ),
+  );
+});
+
 const createTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status, difficulty } = req.body;
+  const { title, description, assignedTo, status, difficulty, dueDate } = req.body;
 
   if (assignedTo) {
     const member = await ProjectMember.exists({
@@ -39,7 +87,16 @@ const createTask = asyncHandler(async (req, res) => {
     assignedBy: req.user._id,
     status,
     difficulty,
+    dueDate: dueDate || undefined,
     attachments,
+  });
+
+  await recordActivity({
+    project: task.project,
+    actor: req.user._id,
+    type: "task_created",
+    message: `Created task: ${task.title}`,
+    details: { task: task._id, assignedTo: task.assignedTo, difficulty: task.difficulty },
   });
 
   return res.status(201).json(new ApiResponse(201, task, "Task created successfully"));
@@ -60,7 +117,7 @@ const getTaskById = asyncHandler(async (req, res) => {
 });
 
 const updateTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status, difficulty } = req.body;
+  const { title, description, assignedTo, status, difficulty, dueDate } = req.body;
   const task = await Task.findOne({ _id: req.params.taskId, project: req.params.projectId });
 
   if (!task) throw new ApiError(404, "Task not found");
@@ -70,11 +127,13 @@ const updateTask = asyncHandler(async (req, res) => {
     if (!member) throw new ApiError(400, "Assignee must be a project member");
   }
 
+  const previousStatus = task.status;
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
   if (assignedTo !== undefined) task.assignedTo = assignedTo || undefined;
   if (status !== undefined) task.status = status;
   if (difficulty !== undefined) task.difficulty = difficulty;
+  if (dueDate !== undefined) task.dueDate = dueDate || undefined;
   task.attachments.push(
     ...(req.files || []).map((file) => ({
       url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
@@ -84,6 +143,16 @@ const updateTask = asyncHandler(async (req, res) => {
   );
   await task.save();
 
+  if (status !== undefined && status !== previousStatus) {
+    await recordActivity({
+      project: task.project,
+      actor: req.user._id,
+      type: "task_status_changed",
+      message: `Changed task status: ${task.title}`,
+      details: { task: task._id, from: previousStatus, to: task.status },
+    });
+  }
+
   return res.status(200).json(new ApiResponse(200, task, "Task updated successfully"));
 });
 
@@ -91,7 +160,18 @@ const deleteTask = asyncHandler(async (req, res) => {
   const task = await Task.findOneAndDelete({ _id: req.params.taskId, project: req.params.projectId });
   if (!task) throw new ApiError(404, "Task not found");
 
-  await Subtask.deleteMany({ task: task._id });
+  await Promise.all([
+    Subtask.deleteMany({ task: task._id }),
+    TaskComment.deleteMany({ task: task._id }),
+  ]);
+
+  await recordActivity({
+    project: task.project,
+    actor: req.user._id,
+    type: "task_deleted",
+    message: `Deleted task: ${task.title}`,
+    details: { task: task._id },
+  });
   return res.status(200).json(new ApiResponse(200, task, "Task deleted successfully"));
 });
 
@@ -137,4 +217,14 @@ const deleteSubTask = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, subtask, "Subtask deleted successfully"));
 });
 
-export { createSubTask, createTask, deleteTask, deleteSubTask, getTaskById, getTasks, updateSubTask, updateTask };
+export {
+  createSubTask,
+  createTask,
+  deleteTask,
+  deleteSubTask,
+  getTaskById,
+  getTaskDueSummary,
+  getTasks,
+  updateSubTask,
+  updateTask,
+};

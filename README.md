@@ -116,6 +116,7 @@ Example registration:
 | POST | `/projects/:projectId/members` | Admin | `email`, `role` |
 | PUT | `/projects/:projectId/members/:userId` | Admin | `newRole` |
 | DELETE | `/projects/:projectId/members/:userId` | Admin | Remove member |
+| GET | `/projects/:projectId/activity` | Member | View project activity history |
 
 Example project:
 
@@ -131,15 +132,19 @@ Example project:
 | Method | Path | Minimum role | Body / notes |
 | --- | --- | --- | --- |
 | GET | `/tasks/:projectId` | Member | List project tasks |
+| GET | `/tasks/:projectId/due-summary` | Member | Group open tasks as due today, due this week, or overdue |
 | POST | `/tasks/:projectId` | Admin or project admin | `multipart/form-data`: `title`, optional `description`, `assignedTo`, `status`, `difficulty`, and up to five `attachments` (1 MB each) |
 | GET | `/tasks/:projectId/t/:taskId` | Member | Get task and subtasks |
 | PUT | `/tasks/:projectId/t/:taskId` | Admin or project admin | Same optional task fields and attachments |
 | DELETE | `/tasks/:projectId/t/:taskId` | Admin or project admin | Delete task and its subtasks |
+| GET | `/tasks/:projectId/t/:taskId/comments` | Member | List task comments |
+| POST | `/tasks/:projectId/t/:taskId/comments` | Member | `content` |
+| DELETE | `/tasks/:projectId/t/:taskId/comments/:commentId` | Member | Delete own comment; managers may delete any comment |
 | POST | `/tasks/:projectId/t/:taskId/subtasks` | Admin or project admin | `title` |
 | PUT | `/tasks/:projectId/st/:subTaskId` | Member | `isCompleted`; administrators may also set `title` |
 | DELETE | `/tasks/:projectId/st/:subTaskId` | Admin or project admin | Delete subtask |
 
-`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. If `assignedTo` is supplied, it must be the ID of a member of that project.
+`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. Add an optional ISO `dueDate` to track deadlines. If `assignedTo` is supplied, it must be the ID of a member of that project.
 
 Example task JSON (when not uploading a file):
 
@@ -149,7 +154,8 @@ Example task JSON (when not uploading a file):
   "description": "Prepare the desktop and mobile flows.",
   "assignedTo": "<project-member-user-id>",
   "status": "in_progress",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "dueDate": "2026-08-10T17:00:00.000Z"
 }
 ```
 
@@ -165,7 +171,7 @@ Example task JSON (when not uploading a file):
 
 ## Postman
 
-Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 36 routes with variables for the base URL, tokens, and resource IDs.
+Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 41 routes with variables for the base URL, tokens, and resource IDs.
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
 

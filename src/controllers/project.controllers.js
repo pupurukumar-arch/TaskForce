@@ -4,12 +4,15 @@ import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
 import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
+import { TaskComment } from "../models/taskcomment.models.js";
+import { Activity } from "../models/activity.models.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 import { getTaskSummaryForUser } from "../utils/task-summary.js";
+import { recordActivity } from "../utils/activity.js";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -95,6 +98,13 @@ const createProject = asyncHandler(async (req, res) => {
     role: UserRolesEnum.ADMIN,
   });
 
+  await recordActivity({
+    project: project._id,
+    actor: req.user._id,
+    type: "project_created",
+    message: `Created project: ${project.name}`,
+  });
+
   return res
     .status(201)
     .json(new ApiResponse(201, project, "Project created Successfully"));
@@ -134,9 +144,11 @@ const deleteProject = asyncHandler(async (req, res) => {
 
   await Promise.all([
     Subtask.deleteMany({ task: { $in: taskIds } }),
+    TaskComment.deleteMany({ task: { $in: taskIds } }),
     Task.deleteMany({ project: projectId }),
     ProjectNote.deleteMany({ project: projectId }),
     ProjectMember.deleteMany({ project: projectId }),
+    Activity.deleteMany({ project: projectId }),
   ]);
 
   await project.deleteOne();
@@ -170,6 +182,14 @@ const addMembersToProject = asyncHandler(async (req, res) => {
       upsert: true,
     },
   );
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_added",
+    message: `Added ${user.username} to the project as ${role}`,
+    details: { user: user._id, role },
+  });
 
   return res
     .status(201)
@@ -283,6 +303,14 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_role_updated",
+    message: `Updated a project member role to ${newRole}`,
+    details: { user: userId, role: newRole },
+  });
+
   return res
     .status(200)
     .json(
@@ -305,6 +333,14 @@ const deleteMember = asyncHandler(async (req, res) => {
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
   }
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_removed",
+    message: "Removed a member from the project",
+    details: { user: userId },
+  });
 
   projectMember = await ProjectMember.findByIdAndDelete(projectMember._id);
 

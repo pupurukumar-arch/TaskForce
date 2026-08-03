@@ -43,6 +43,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - **Role Management:** Update member roles within projects (Admin only)
 - **Member Removal:** Remove team members from projects (Admin only)
 - **Member Workload View:** Project admins can view a member's assigned-task and in-progress difficulty counts before assigning work
+- **Activity History:** Project members can view a timeline of important collaboration events
 
 #### 3.4 Task Management
 
@@ -56,6 +57,8 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - **Status Tracking:** Three-state status system (Todo, In Progress, Done)
 - **Difficulty Tracking:** Tasks are categorised as Easy, Medium, or Hard
 - **Personal Task Summary:** Members can view their total assigned tasks and in-progress tasks grouped by difficulty
+- **Due Dates:** Tasks can have a due date and are grouped as Due Today, Due This Week, or Overdue
+- **Task Comments:** Project members can add, read, and remove comments on tasks
 
 #### 3.5 Subtask Management
 
@@ -107,14 +110,19 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `PUT /:projectId/members/:userId` - Update member role (secured, Admin only)
 - `DELETE /:projectId/members/:userId` - Remove member (secured, Admin only)
 - `GET /:projectId/members/:userId/task-summary` - View a member's workload before task assignment (secured, Admin only)
+- `GET /:projectId/activity` - View project activity history (secured, role-based)
 
 **Task Routes** (`/api/v1/tasks/`)
 
 - `GET /:projectId` - List project tasks (secured, role-based)
+- `GET /:projectId/due-summary` - Group open tasks by due-date urgency (secured, role-based)
 - `POST /:projectId` - Create task with status, difficulty, assignee, and optional attachments (secured, Admin/Project Admin)
 - `GET /:projectId/t/:taskId` - Get task details (secured, role-based)
 - `PUT /:projectId/t/:taskId` - Update task (secured, Admin/Project Admin)
 - `DELETE /:projectId/t/:taskId` - Delete task (secured, Admin/Project Admin)
+- `GET /:projectId/t/:taskId/comments` - List task comments (secured, role-based)
+- `POST /:projectId/t/:taskId/comments` - Add a task comment (secured, role-based)
+- `DELETE /:projectId/t/:taskId/comments/:commentId` - Delete own comment or any comment as a manager (secured)
 - `POST /:projectId/t/:taskId/subtasks` - Create subtask (secured, Admin/Project Admin)
 - `PUT /:projectId/st/:subTaskId` - Update subtask (secured, role-based)
 - `DELETE /:projectId/st/:subTaskId` - Delete subtask (secured, Admin/Project Admin)
@@ -169,6 +177,12 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 
 - `skills` - A list of technical skills entered by the member, such as Node.js, MongoDB, or React
 
+**Task Collaboration:**
+
+- `dueDate` - Optional task deadline used for Due Today, Due This Week, and Overdue views
+- `TaskComment` - Stores a task comment, its author, content, and timestamp
+- `Activity` - Stores project actions such as project creation, member addition, task creation, status changes, and comments
+
 ### 5. Security Features
 
 - JWT-based authentication with refresh tokens
@@ -196,4 +210,5 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - File attachment capability for enhanced collaboration
 - Email notification system for user verification and password reset
 - Practical workload visibility for fair task assignment
+- Deadline tracking, task collaboration, and a project activity timeline
 - Comprehensive API documentation through endpoint structure

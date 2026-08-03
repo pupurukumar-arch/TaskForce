@@ -11,6 +11,7 @@ import {
   deleteProject,
   updateMemberRole,
 } from "../controllers/project.controllers.js";
+import { getProjectActivities } from "../controllers/activity.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import {
   createProjectValidator,
@@ -56,7 +57,11 @@ router
   .get(
     validateProjectPermission([UserRolesEnum.ADMIN]),
     getMemberTaskSummary,
-  )
+  );
+
+router
+  .route("/:projectId/activity")
+  .get(validateProjectPermission(AvailableUserRole), getProjectActivities);
 
 router
   .route("/:projectId/members/:userId")

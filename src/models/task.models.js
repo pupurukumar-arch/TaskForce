@@ -37,6 +37,9 @@ const taskSchema = new Schema(
       enum: AvailableTaskDifficulties,
       default: TaskDifficultyEnum.MEDIUM,
     },
+    dueDate: {
+      type: Date,
+    },
     attachments: {
       type: [
         {
