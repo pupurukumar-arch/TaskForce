@@ -44,6 +44,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - **Member Removal:** Remove team members from projects (Admin only)
 - **Member Workload View:** Project admins can view a member's assigned-task and in-progress difficulty counts before assigning work
 - **Activity History:** Project members can view a timeline of important collaboration events
+- **In-app Notifications:** Members receive notifications when added to a project, assigned a task, or mentioned in a task comment
 
 #### 3.4 Task Management
 
@@ -56,6 +57,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - **Task Assignment:** Assign tasks to specific team members
 - **Status Tracking:** Three-state status system (Todo, In Progress, Done)
 - **Difficulty Tracking:** Tasks are categorised as Easy, Medium, or Hard
+- **Priority Tracking:** Tasks use Low, Medium, or High priority to help teams focus on urgent work
 - **Personal Task Summary:** Members can view their total assigned tasks and in-progress tasks grouped by difficulty
 - **Due Dates:** Tasks can have a due date and are grouped as Due Today, Due This Week, or Overdue
 - **Task Comments:** Project members can add, read, and remove comments on tasks
@@ -127,6 +129,11 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `PUT /:projectId/st/:subTaskId` - Update subtask (secured, role-based)
 - `DELETE /:projectId/st/:subTaskId` - Delete subtask (secured, Admin/Project Admin)
 
+**Notification Routes** (`/api/v1/notifications/`)
+
+- `GET /` - List the logged-in user's notifications (secured)
+- `PATCH /:notificationId/read` - Mark a notification as read (secured, owner only)
+
 **Note Routes** (`/api/v1/notes/`)
 
 - `GET /:projectId` - List project notes (secured, role-based)
@@ -173,6 +180,12 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `medium` - Standard-complexity task
 - `hard` - High-complexity task
 
+**Task Priority:**
+
+- `low` - Can be completed later
+- `medium` - Normal work priority
+- `high` - Needs prompt attention
+
 **Member Profile:**
 
 - `skills` - A list of technical skills entered by the member, such as Node.js, MongoDB, or React
@@ -182,6 +195,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `dueDate` - Optional task deadline used for Due Today, Due This Week, and Overdue views
 - `TaskComment` - Stores a task comment, its author, content, and timestamp
 - `Activity` - Stores project actions such as project creation, member addition, task creation, status changes, and comments
+- `Notification` - Stores a user notification for project addition, task assignment, or a task-comment mention
 
 ### 5. Security Features
 

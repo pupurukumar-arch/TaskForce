@@ -16,7 +16,8 @@
     { "key": "taskId", "value": "" },
     { "key": "commentId", "value": "" },
     { "key": "subTaskId", "value": "" },
-    { "key": "noteId", "value": "" }
+    { "key": "noteId", "value": "" },
+    { "key": "notificationId", "value": "" }
   ],
   "item": [
     {
@@ -70,16 +71,23 @@
       "item": [
         { "name": "List tasks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}" } },
         { "name": "Get due-date summary", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/due-summary" } },
-        { "name": "Create task", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create homepage wireframes", "type": "text" }, { "key": "description", "value": "Prepare desktop and mobile flows.", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "todo", "type": "text" }, { "key": "difficulty", "value": "medium", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}" } },
+        { "name": "Create task", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create homepage wireframes", "type": "text" }, { "key": "description", "value": "Prepare desktop and mobile flows.", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "todo", "type": "text" }, { "key": "difficulty", "value": "medium", "type": "text" }, { "key": "priority", "value": "high", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}" } },
         { "name": "Get task", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
         { "name": "List task comments", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments" } },
         { "name": "Add task comment", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Task update: implementation has started.\"\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments" } },
         { "name": "Delete task comment", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments/{{commentId}}" } },
-        { "name": "Update task", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create reviewed homepage wireframes", "type": "text" }, { "key": "description", "value": "", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "in_progress", "type": "text" }, { "key": "difficulty", "value": "hard", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
+        { "name": "Update task", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create reviewed homepage wireframes", "type": "text" }, { "key": "description", "value": "", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "in_progress", "type": "text" }, { "key": "difficulty", "value": "hard", "type": "text" }, { "key": "priority", "value": "high", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
         { "name": "Delete task", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
         { "name": "Create subtask", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Review wireframes\"\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/subtasks" } },
         { "name": "Update subtask", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"isCompleted\": true\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/st/{{subTaskId}}" } },
         { "name": "Delete subtask", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/st/{{subTaskId}}" } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List my notifications", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications" } },
+        { "name": "Mark notification as read", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications/{{notificationId}}/read" } }
       ]
     },
     {

@@ -6,6 +6,7 @@ import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
 import { TaskComment } from "../models/taskcomment.models.js";
 import { Activity } from "../models/activity.models.js";
+import { Notification } from "../models/notification.models.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -13,6 +14,7 @@ import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 import { getTaskSummaryForUser } from "../utils/task-summary.js";
 import { recordActivity } from "../utils/activity.js";
+import { createNotification } from "../utils/notification.js";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -149,6 +151,7 @@ const deleteProject = asyncHandler(async (req, res) => {
     ProjectNote.deleteMany({ project: projectId }),
     ProjectMember.deleteMany({ project: projectId }),
     Activity.deleteMany({ project: projectId }),
+    Notification.deleteMany({ project: projectId }),
   ]);
 
   await project.deleteOne();
@@ -166,6 +169,16 @@ const addMembersToProject = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
+
+  const project = await Project.findById(projectId).select("name");
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  const existingMembership = await ProjectMember.exists({
+    user: user._id,
+    project: projectId,
+  });
 
   await ProjectMember.findOneAndUpdate(
     {
@@ -190,6 +203,15 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     message: `Added ${user.username} to the project as ${role}`,
     details: { user: user._id, role },
   });
+
+  if (!existingMembership && user._id.toString() !== req.user._id.toString()) {
+    await createNotification({
+      recipient: user._id,
+      project: project._id,
+      type: "project_member_added",
+      message: `You were added to the project: ${project.name}`,
+    });
+  }
 
   return res
     .status(201)

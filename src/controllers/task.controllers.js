@@ -1,12 +1,14 @@
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Subtask } from "../models/subtask.models.js";
 import { TaskComment } from "../models/taskcomment.models.js";
+import { Notification } from "../models/notification.models.js";
 import { Task } from "../models/task.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { UserRolesEnum } from "../utils/constants.js";
 import { recordActivity } from "../utils/activity.js";
+import { createNotification } from "../utils/notification.js";
 
 const getTasks = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: req.params.projectId })
@@ -63,7 +65,8 @@ const getTaskDueSummary = asyncHandler(async (req, res) => {
 });
 
 const createTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status, difficulty, dueDate } = req.body;
+  const { title, description, assignedTo, status, difficulty, priority, dueDate } =
+    req.body;
 
   if (assignedTo) {
     const member = await ProjectMember.exists({
@@ -87,6 +90,7 @@ const createTask = asyncHandler(async (req, res) => {
     assignedBy: req.user._id,
     status,
     difficulty,
+    priority,
     dueDate: dueDate || undefined,
     attachments,
   });
@@ -96,8 +100,23 @@ const createTask = asyncHandler(async (req, res) => {
     actor: req.user._id,
     type: "task_created",
     message: `Created task: ${task.title}`,
-    details: { task: task._id, assignedTo: task.assignedTo, difficulty: task.difficulty },
+    details: {
+      task: task._id,
+      assignedTo: task.assignedTo,
+      difficulty: task.difficulty,
+      priority: task.priority,
+    },
   });
+
+  if (task.assignedTo && task.assignedTo.toString() !== req.user._id.toString()) {
+    await createNotification({
+      recipient: task.assignedTo,
+      project: task.project,
+      task: task._id,
+      type: "task_assigned",
+      message: `You were assigned the task: ${task.title}`,
+    });
+  }
 
   return res.status(201).json(new ApiResponse(201, task, "Task created successfully"));
 });
@@ -117,7 +136,8 @@ const getTaskById = asyncHandler(async (req, res) => {
 });
 
 const updateTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status, difficulty, dueDate } = req.body;
+  const { title, description, assignedTo, status, difficulty, priority, dueDate } =
+    req.body;
   const task = await Task.findOne({ _id: req.params.taskId, project: req.params.projectId });
 
   if (!task) throw new ApiError(404, "Task not found");
@@ -128,11 +148,13 @@ const updateTask = asyncHandler(async (req, res) => {
   }
 
   const previousStatus = task.status;
+  const previousAssignee = task.assignedTo?.toString();
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
   if (assignedTo !== undefined) task.assignedTo = assignedTo || undefined;
   if (status !== undefined) task.status = status;
   if (difficulty !== undefined) task.difficulty = difficulty;
+  if (priority !== undefined) task.priority = priority;
   if (dueDate !== undefined) task.dueDate = dueDate || undefined;
   task.attachments.push(
     ...(req.files || []).map((file) => ({
@@ -142,6 +164,20 @@ const updateTask = asyncHandler(async (req, res) => {
     })),
   );
   await task.save();
+
+  if (
+    task.assignedTo &&
+    task.assignedTo.toString() !== previousAssignee &&
+    task.assignedTo.toString() !== req.user._id.toString()
+  ) {
+    await createNotification({
+      recipient: task.assignedTo,
+      project: task.project,
+      task: task._id,
+      type: "task_assigned",
+      message: `You were assigned the task: ${task.title}`,
+    });
+  }
 
   if (status !== undefined && status !== previousStatus) {
     await recordActivity({
@@ -163,6 +199,7 @@ const deleteTask = asyncHandler(async (req, res) => {
   await Promise.all([
     Subtask.deleteMany({ task: task._id }),
     TaskComment.deleteMany({ task: task._id }),
+    Notification.deleteMany({ task: task._id }),
   ]);
 
   await recordActivity({

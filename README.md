@@ -133,7 +133,7 @@ Example project:
 | --- | --- | --- | --- |
 | GET | `/tasks/:projectId` | Member | List project tasks |
 | GET | `/tasks/:projectId/due-summary` | Member | Group open tasks as due today, due this week, or overdue |
-| POST | `/tasks/:projectId` | Admin or project admin | `multipart/form-data`: `title`, optional `description`, `assignedTo`, `status`, `difficulty`, and up to five `attachments` (1 MB each) |
+| POST | `/tasks/:projectId` | Admin or project admin | `multipart/form-data`: `title`, optional `description`, `assignedTo`, `status`, `difficulty`, `priority`, and up to five `attachments` (1 MB each) |
 | GET | `/tasks/:projectId/t/:taskId` | Member | Get task and subtasks |
 | PUT | `/tasks/:projectId/t/:taskId` | Admin or project admin | Same optional task fields and attachments |
 | DELETE | `/tasks/:projectId/t/:taskId` | Admin or project admin | Delete task and its subtasks |
@@ -144,7 +144,7 @@ Example project:
 | PUT | `/tasks/:projectId/st/:subTaskId` | Member | `isCompleted`; administrators may also set `title` |
 | DELETE | `/tasks/:projectId/st/:subTaskId` | Admin or project admin | Delete subtask |
 
-`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. Add an optional ISO `dueDate` to track deadlines. If `assignedTo` is supplied, it must be the ID of a member of that project.
+`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. `priority` may be `low`, `medium`, or `high` (default: `medium`). Add an optional ISO `dueDate` to track deadlines. If `assignedTo` is supplied, it must be the ID of a member of that project.
 
 Example task JSON (when not uploading a file):
 
@@ -155,9 +155,21 @@ Example task JSON (when not uploading a file):
   "assignedTo": "<project-member-user-id>",
   "status": "in_progress",
   "difficulty": "medium",
+  "priority": "high",
   "dueDate": "2026-08-10T17:00:00.000Z"
 }
 ```
+
+Use `@username` in a task comment to notify that project member.
+
+### Notifications
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| GET | `/notifications` | Logged-in user | List the current user's notifications |
+| PATCH | `/notifications/:notificationId/read` | Logged-in user | Mark one of the current user's notifications as read |
+
+Notifications are created when a user is added to a project, assigned a task, or mentioned in a task comment.
 
 ### Project notes
 
@@ -171,7 +183,7 @@ Example task JSON (when not uploading a file):
 
 ## Postman
 
-Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 41 routes with variables for the base URL, tokens, and resource IDs.
+Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 43 routes with variables for the base URL, tokens, and resource IDs.
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
 

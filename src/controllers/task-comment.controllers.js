@@ -1,10 +1,13 @@
 import { TaskComment } from "../models/taskcomment.models.js";
 import { Task } from "../models/task.models.js";
+import { User } from "../models/user.models.js";
+import { ProjectMember } from "../models/projectmember.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { recordActivity } from "../utils/activity.js";
 import { UserRolesEnum } from "../utils/constants.js";
+import { createNotification } from "../utils/notification.js";
 
 const getTaskComments = asyncHandler(async (req, res) => {
   const task = await Task.findOne({
@@ -42,6 +45,38 @@ const createTaskComment = asyncHandler(async (req, res) => {
     message: `Added a comment to task: ${task.title}`,
     details: { task: task._id, comment: comment._id },
   });
+
+  const mentionedUsernames = [
+    ...new Set(
+      [...comment.content.matchAll(/@([a-z0-9_]+)/gi)].map((match) =>
+        match[1].toLowerCase(),
+      ),
+    ),
+  ];
+
+  if (mentionedUsernames.length > 0) {
+    const mentionedUsers = await User.find({
+      username: { $in: mentionedUsernames },
+    }).select("_id");
+    const projectMembers = await ProjectMember.find({
+      project: task.project,
+      user: { $in: mentionedUsers.map((user) => user._id) },
+    }).select("user");
+
+    await Promise.all(
+      projectMembers
+        .filter((member) => member.user.toString() !== req.user._id.toString())
+        .map((member) =>
+          createNotification({
+            recipient: member.user,
+            project: task.project,
+            task: task._id,
+            type: "comment_mention",
+            message: `You were mentioned in a comment on task: ${task.title}`,
+          }),
+        ),
+    );
+  }
 
   return res
     .status(201)
