@@ -39,6 +39,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 #### 3.3 Team Member Management
 
 - **Member Addition:** Invite users to projects via email
+- **External Member Invitations:** Admins can send a seven-day registration invitation to an email address that does not yet have an account
 - **Member Listing:** View all project team members
 - **Role Management:** Update member roles within projects (Admin only)
 - **Member Removal:** Remove team members from projects (Admin only)
@@ -109,6 +110,8 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `DELETE /:projectId` - Delete project (secured, Admin only)
 - `GET /:projectId/members` - List project members (secured)
 - `POST /:projectId/members` - Add project member (secured, Admin only)
+- `POST /:projectId/invitations` - Email an invitation to an unregistered future member (secured, Admin only)
+- `POST /invitations/:invitationToken/accept` - Accept an invitation after registering and logging in with the invited email (secured)
 - `PUT /:projectId/members/:userId` - Update member role (secured, Admin only)
 - `DELETE /:projectId/members/:userId` - Remove member (secured, Admin only)
 - `GET /:projectId/members/:userId/task-summary` - View a member's workload before task assignment (secured, Admin only)
@@ -196,6 +199,7 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `TaskComment` - Stores a task comment, its author, content, and timestamp
 - `Activity` - Stores project actions such as project creation, member addition, task creation, status changes, and comments
 - `Notification` - Stores a user notification for project addition, task assignment, or a task-comment mention
+- `ProjectInvite` - Stores a hashed, seven-day project invitation for an unregistered email address
 
 ### 5. Security Features
 

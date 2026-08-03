@@ -17,7 +17,8 @@
     { "key": "commentId", "value": "" },
     { "key": "subTaskId", "value": "" },
     { "key": "noteId", "value": "" },
-    { "key": "notificationId", "value": "" }
+    { "key": "notificationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
   ],
   "item": [
     {
@@ -62,6 +63,8 @@
         { "name": "Get member task summary (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}/task-summary" } },
         { "name": "Get project activity", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/activity" } },
         { "name": "Add project member", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"member@example.com\",\n  \"role\": \"member\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/members" } },
+        { "name": "Invite unregistered member", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"new-member@example.com\",\n  \"role\": \"member\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/invitations" } },
+        { "name": "Accept project invitation", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/invitations/{{invitationToken}}/accept" } },
         { "name": "Update project member role", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"newRole\": \"project_admin\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}" } },
         { "name": "Remove project member", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}" } }
       ]

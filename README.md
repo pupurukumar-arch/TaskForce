@@ -32,6 +32,7 @@ Create `.env` from `.env.example` and set the following values. Never commit `.e
 | `REFRESH_TOKEN_EXPIRY` | Refresh token lifetime, for example `10d` |
 | `CORS_ORIGIN` | Allowed frontend origin, for example `http://localhost:5173` |
 | `FORGOT_PASSWORD_REDIRECT_URL` | Frontend reset-password URL |
+| `PROJECT_INVITE_REDIRECT_URL` | Frontend registration page used in project-invitation emails |
 | `MAILTRAP_SMTP_HOST` | SMTP host |
 | `MAILTRAP_SMTP_PORT` | SMTP port |
 | `MAILTRAP_SMTP_USER` | SMTP username |
@@ -114,6 +115,8 @@ Example registration:
 | GET | `/projects/:projectId/members` | Authenticated | List members |
 | GET | `/projects/:projectId/members/:userId/task-summary` | Admin | View a selected member's workload before assigning a task |
 | POST | `/projects/:projectId/members` | Admin | `email`, `role` |
+| POST | `/projects/:projectId/invitations` | Admin | Invite an email address that has not registered yet; `email`, `role` |
+| POST | `/projects/invitations/:invitationToken/accept` | Logged-in invited user | Accept invitation after registering with the invited email address |
 | PUT | `/projects/:projectId/members/:userId` | Admin | `newRole` |
 | DELETE | `/projects/:projectId/members/:userId` | Admin | Remove member |
 | GET | `/projects/:projectId/activity` | Member | View project activity history |
@@ -183,9 +186,11 @@ Notifications are created when a user is added to a project, assigned a task, or
 
 ## Postman
 
-Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 43 routes with variables for the base URL, tokens, and resource IDs.
+Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 45 routes with variables for the base URL, tokens, and resource IDs.
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
+
+For a person who has not registered yet, an admin uses the project invitation endpoint. The email contains a seven-day link to the registration page. After registering, verifying their email, and logging in with the invited email address, they call the accept-invitation endpoint with the link token.
 
 ## Automated API tests
 

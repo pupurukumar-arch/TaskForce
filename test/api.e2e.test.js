@@ -12,6 +12,8 @@ import { Notification } from "../src/models/notification.models.js";
 import { Activity } from "../src/models/activity.models.js";
 import { Subtask } from "../src/models/subtask.models.js";
 import { ProjectNote } from "../src/models/note.models.js";
+import { ProjectInvite } from "../src/models/projectinvite.models.js";
+import crypto from "crypto";
 
 dotenv.config({ path: ".env" });
 
@@ -130,6 +132,7 @@ after(async () => {
       Task.deleteMany({ project: projectId }),
       ProjectNote.deleteMany({ project: projectId }),
       ProjectMember.deleteMany({ project: projectId }),
+      ProjectInvite.deleteMany({ project: projectId }),
       Activity.deleteMany({ project: projectId }),
       Project.deleteOne({ _id: projectId }),
     );
@@ -309,4 +312,38 @@ test("invalid task, comment, note, subtask, and role inputs are rejected", async
     body: { newRole: "owner" },
   });
   assert.equal(invalidRole.status, 422);
+});
+
+test("a registered user can accept a valid invitation for their email", async () => {
+  const invitationToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(invitationToken)
+    .digest("hex");
+  await ProjectInvite.create({
+    project: projectId,
+    email: outsider.email,
+    role: "member",
+    invitedBy: admin._id,
+    token: hashedToken,
+    tokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+  });
+
+  const accepted = await request(`/projects/invitations/${invitationToken}/accept`, {
+    method: "POST",
+    token: outsiderToken,
+  });
+  assert.equal(accepted.status, 200, JSON.stringify(accepted.body));
+
+  const membership = await ProjectMember.findOne({
+    project: projectId,
+    user: outsider._id,
+  });
+  assert.ok(membership);
+
+  const acceptedAgain = await request(`/projects/invitations/${invitationToken}/accept`, {
+    method: "POST",
+    token: outsiderToken,
+  });
+  assert.equal(acceptedAgain.status, 400);
 });

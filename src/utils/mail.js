@@ -83,8 +83,27 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   };
 };
 
+const projectInvitationMailgenContent = (projectName, invitationUrl) => {
+  return {
+    body: {
+      name: "there",
+      intro: `You have been invited to join the project: ${projectName}.`,
+      action: {
+        instructions: "Create an account or log in, then accept the project invitation.",
+        button: {
+          color: "#22BC66",
+          text: "View invitation",
+          link: invitationUrl,
+        },
+      },
+      outro: "This invitation expires in 7 days.",
+    },
+  };
+};
+
 export {
   emailVerificationMailgenContent,
   forgotPasswordMailgenContent,
+  projectInvitationMailgenContent,
   sendEmail,
 };

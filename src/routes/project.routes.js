@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   addMembersToProject,
+  acceptProjectInvitation,
   createProject,
   deleteMember,
   getProjects,
@@ -10,6 +11,7 @@ import {
   updateProject,
   deleteProject,
   updateMemberRole,
+  inviteUnregisteredMember,
 } from "../controllers/project.controllers.js";
 import { getProjectActivities } from "../controllers/activity.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -33,6 +35,10 @@ router
   .post(createProjectValidator(), validate, createProject);
 
 router
+  .route("/invitations/:invitationToken/accept")
+  .post(acceptProjectInvitation);
+
+router
   .route("/:projectId")
   .get(validateProjectPermission(AvailableUserRole), getProjectById)
   .put(
@@ -51,6 +57,15 @@ router
     addMembertoProjectValidator(),
     validate,
     addMembersToProject,
+  );
+
+router
+  .route("/:projectId/invitations")
+  .post(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    addMembertoProjectValidator(),
+    validate,
+    inviteUnregisteredMember,
   );
 
 router
