@@ -88,6 +88,44 @@ const getProjectById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, project, "Project fetched successfully"));
 });
 
+const getProjectProgress = asyncHandler(async (req, res) => {
+  const tasks = await Task.find({ project: req.params.projectId })
+    .select("assignedTo status dueDate")
+    .lean();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const statusCounts = { todo: 0, in_progress: 0, in_review: 0, done: 0 };
+  const isOverdue = (task) => task.status !== "done" && task.dueDate && task.dueDate < startOfToday;
+  const summarize = (taskList) => ({
+    totalTasks: taskList.length,
+    completedTasks: taskList.filter((task) => task.status === "done").length,
+    completedPercentage: taskList.length ? Math.round((taskList.filter((task) => task.status === "done").length / taskList.length) * 100) : 0,
+    overdueTasks: taskList.filter(isOverdue).length,
+  });
+  tasks.forEach((task) => { statusCounts[task.status] += 1; });
+
+  const isManager = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN].includes(req.user.role);
+  const myTasks = tasks.filter((task) => task.assignedTo?.toString() === req.user._id.toString());
+  const data = {
+    scope: isManager ? "project" : "personal",
+    summary: summarize(isManager ? tasks : myTasks),
+    statusCounts: isManager
+      ? statusCounts
+      : myTasks.reduce((counts, task) => ({ ...counts, [task.status]: counts[task.status] + 1 }), { todo: 0, in_progress: 0, in_review: 0, done: 0 }),
+  };
+
+  if (isManager) {
+    const members = await ProjectMember.find({ project: req.params.projectId }).populate("user", "username fullName").lean();
+    data.memberWorkload = members.map((member) => ({
+      user: member.user,
+      role: member.role,
+      ...summarize(tasks.filter((task) => task.assignedTo?.toString() === member.user._id.toString())),
+    }));
+  }
+
+  return res.status(200).json(new ApiResponse(200, data, "Project progress fetched successfully"));
+});
+
 const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
@@ -520,6 +558,7 @@ export {
   createProject,
   deleteMember,
   getProjects,
+  getProjectProgress,
   inviteUnregisteredMember,
   getProjectById,
   getProjectMembers,

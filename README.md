@@ -185,6 +185,7 @@ Example registration:
 | DELETE | `/projects/:projectId` | Admin | Delete project |
 | GET | `/projects/:projectId/members` | Authenticated | List members |
 | GET | `/projects/:projectId/members/:userId/task-summary` | Admin | View a selected member's workload before assigning a task |
+| GET | `/projects/:projectId/progress` | Project member | Role-aware task totals, completion, overdue items, status counts, and manager workload |
 | POST | `/projects/:projectId/members` | Admin | `email`, `role` |
 | POST | `/projects/:projectId/invitations` | Admin | Invite an email address that has not registered yet; `email`, `role` |
 | POST | `/projects/invitations/:invitationToken/accept` | Logged-in invited user | Accept invitation after registering with the invited email address |
