@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
 import { ApiError } from "./utils/api-error.js";
+import { openapiSpecification } from "./docs/openapi.js";
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
@@ -22,6 +24,7 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, { customSiteTitle: "TaskForce API Docs" }));
 
 // cors configurations
 app.use(
