@@ -271,6 +271,10 @@ Suggested order: register, verify the email token from Mailtrap, log in, create 
 
 For a person who has not registered yet, an admin uses the project invitation endpoint. The email contains a seven-day link to the registration page. After registering, verifying their email, and logging in with the invited email address, they call the accept-invitation endpoint with the link token.
 
+## Interactive API documentation
+
+Start the backend and open [`/api-docs`](http://localhost:3000/api-docs/) to view the Swagger/OpenAPI documentation. For protected routes, click **Authorize** and enter the access token returned by login.
+
 ## Automated API tests
 
 The built-in test suite uses Node.js's test runner, so no extra package is required. Set `TEST_MONGO_URI` in `.env` to a separate MongoDB database (for example, `taskforge_test`), then run:
