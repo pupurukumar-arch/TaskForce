@@ -1,6 +1,36 @@
-# TaskForce API
+# TaskForce
 
-TaskForce is a REST API for project-based collaboration. It provides authentication, projects and member roles, tasks and attachments, subtasks, and project notes.
+TaskForce is a role-based project collaboration application built as a final-year placement project. Its Express REST API supports secure authentication, project membership, task planning, reviewable work submissions, deadlines, and team communication. The React frontend is branded as **Orbit**.
+
+## Why this project is useful
+
+Most task-management demos stop at creating and updating tasks. TaskForce models the practical team workflow around them: a project owner creates work, a member completes it, attaches evidence, submits it for review, and a manager approves it or sends it back. Activity history and notifications keep that workflow visible.
+
+## Key features
+
+- JWT authentication with email verification, password reset, refresh tokens, and password change.
+- Clear project-level roles: **Admin**, **Project Admin**, and **Member**.
+- Projects, task assignment, priority, difficulty, due dates, deadlines, subtasks, comments, notes, attachments, and activity history.
+- A simple review workflow: assigned members submit work; Admins and Project Admins approve or return it.
+- Existing-user membership and secure invitation flow for people who have not registered yet.
+- Personal deadline list and calendar views for assigned tasks.
+- Input validation, JSON error responses, permission checks, security headers, CORS configuration, and automated API tests.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    User["User"] --> Orbit["Orbit frontend\nReact + Vite"]
+    Orbit -->|"REST requests + JWT"| API["TaskForce API\nExpress"]
+    API --> Auth["Authentication & roles\nJWT + bcrypt"]
+    API --> Work["Projects, tasks, review\ncomments, notes, activity"]
+    Auth --> DB[("MongoDB")]
+    Work --> DB
+    API --> Mail["Mailtrap Sandbox\nlocal email testing"]
+    API --> Uploads["Local task attachments"]
+```
+
+**Important design decision:** the frontend may hide controls based on role, but the Express API is the final permission check. Changing browser code cannot grant a Member manager access.
 
 ## Requirements
 
@@ -12,15 +42,15 @@ TaskForce is a REST API for project-based collaboration. It provides authenticat
 
 ```bash
 npm ci
-cp .env.example .env
-npm start
+# Create a local .env file with the variables shown below.
+npm run dev
 ```
 
 The server starts on `http://localhost:3000` unless `PORT` is changed. Check it with `GET /api/v1/healthcheck`.
 
 ## Configuration
 
-Create `.env` from `.env.example` and set the following values. Never commit `.env`.
+Create a local `.env` file and set the following values. Never commit `.env`. The example values below are intentionally non-secret.
 
 | Variable | Purpose |
 | --- | --- |
@@ -37,6 +67,43 @@ Create `.env` from `.env.example` and set the following values. Never commit `.e
 | `MAILTRAP_SMTP_PORT` | SMTP port |
 | `MAILTRAP_SMTP_USER` | SMTP username |
 | `MAILTRAP_SMTP_PASS` | SMTP password |
+| `TEST_MONGO_URI` | A separate database used only by `npm test` |
+
+Minimal local example:
+
+```env
+PORT=3000
+MONGO_URI=mongodb://127.0.0.1:27017/taskforce
+TEST_MONGO_URI=mongodb://127.0.0.1:27017/taskforge_test
+ACCESS_TOKEN_SECRET=replace_with_a_long_random_value
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=replace_with_a_different_long_random_value
+REFRESH_TOKEN_EXPIRY=10d
+CORS_ORIGIN=http://localhost:5173
+FORGOT_PASSWORD_REDIRECT_URL=http://localhost:5173/reset-password
+PROJECT_INVITE_REDIRECT_URL=http://localhost:5173/register
+```
+
+Use different database names for `MONGO_URI` and `TEST_MONGO_URI`. This prevents automated test data from ever touching real development data.
+
+## Application flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant M as Member
+    participant API as TaskForce API
+    participant DB as MongoDB
+
+    A->>API: Create project and add/invite member
+    API->>DB: Store project membership and activity
+    A->>API: Create task with assignee, priority, due date
+    API->>DB: Store task and notification
+    M->>API: Add comment / attach work / submit for review
+    API->>DB: Save submission, activity, notification
+    A->>API: Approve or send task back
+    API->>DB: Update status and notify member
+```
 
 ## Authentication
 
@@ -90,7 +157,7 @@ Base URL: `http://localhost:3000/api/v1`
 | PUT | `/auth/profile/skills` | Yes | Saves a member's `skills` array |
 | GET | `/auth/task-summary` | Yes | Returns the current member's assigned-task and in-progress difficulty counts |
 | POST | `/auth/change-password` | Yes | `oldPassword`, `newPassword` |
-| POST | `/auth/resend-email-verification` | Yes | Sends another verification email |
+| POST | `/auth/resend-email-verification` | No | `email`; sends a fresh verification email for an unverified account |
 
 Example registration:
 
@@ -147,7 +214,7 @@ Example project:
 | PUT | `/tasks/:projectId/st/:subTaskId` | Member | `isCompleted`; administrators may also set `title` |
 | DELETE | `/tasks/:projectId/st/:subTaskId` | Admin or project admin | Delete subtask |
 
-`status` may be `todo`, `in_progress`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. `priority` may be `low`, `medium`, or `high` (default: `medium`). Add an optional ISO `dueDate` to track deadlines. If `assignedTo` is supplied, it must be the ID of a member of that project.
+`status` may be `todo`, `in_progress`, `in_review`, or `done`. `difficulty` may be `easy`, `medium`, or `hard`. `priority` may be `low`, `medium`, or `high` (default: `medium`). Add an optional ISO `dueDate` to track deadlines. If `assignedTo` is supplied, it must be the ID of a member of that project.
 
 Example task JSON (when not uploading a file):
 
@@ -164,6 +231,15 @@ Example task JSON (when not uploading a file):
 ```
 
 Use `@username` in a task comment to notify that project member.
+
+### Personal planning
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| GET | `/tasks/my-deadlines` | Logged-in user | Personal due-today, due-this-week, and overdue task groups |
+| GET | `/tasks/my-calendar?month=YYYY-MM` | Logged-in user | Assigned tasks with due dates for one calendar month |
+| POST | `/tasks/:projectId/t/:taskId/submit-review` | Assigned member | Attach evidence and move an open task to `in_review` |
+| POST | `/tasks/:projectId/t/:taskId/review` | Admin or project admin | `{ "approved": true }` to complete, or `false` to send back |
 
 ### Notifications
 
@@ -186,7 +262,7 @@ Notifications are created when a user is added to a project, assigned a task, or
 
 ## Postman
 
-Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides all 45 routes with variables for the base URL, tokens, and resource IDs.
+Import [TaskForce.postman_collection.json](./TaskForce.postman_collection.json) into Postman. It provides request variables for the base URL, tokens, and resource IDs.
 
 Suggested order: register, verify the email token from Mailtrap, log in, create a project, then use its ID to create members, tasks, subtasks, and notes. Set collection variables after each creation response.
 
@@ -205,3 +281,17 @@ The tests create temporary users and project data only in that test database, ve
 ## Security note
 
 Do not publish `.env`, MongoDB URIs, SMTP credentials, JWT secrets, or real tokens. `.gitignore` excludes `.env` and `node_modules`.
+
+## Placement demo checklist
+
+1. Register and verify an Admin through the Mailtrap Sandbox inbox.
+2. Create **Campus Placement Portal** and add a Project Admin or invite a new member.
+3. Create **Build student profile screen** with a due date, high priority, and medium difficulty.
+4. As a Member, add a subtask and comment, attach a small file, then submit it for review.
+5. As a manager, approve the task and show the activity and notification created by that decision.
+6. Open the Deadline and Calendar screens to explain personal planning.
+7. Run `npm test` and explain that the test database is isolated from real data.
+
+## Screenshots
+
+The interface is currently being polished locally. Add screenshots only after the deployed frontend is using final demo data; this keeps the public repository free from private names, email addresses, and unfinished UI states.

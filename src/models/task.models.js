@@ -47,6 +47,16 @@ const taskSchema = new Schema(
     dueDate: {
       type: Date,
     },
+    submittedForReviewBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    submittedForReviewAt: Date,
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    approvedAt: Date,
     attachments: {
       type: [
         {

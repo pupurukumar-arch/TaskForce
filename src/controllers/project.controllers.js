@@ -415,6 +415,23 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  if (
+    projectMember.role === UserRolesEnum.ADMIN &&
+    newRole !== UserRolesEnum.ADMIN
+  ) {
+    const adminCount = await ProjectMember.countDocuments({
+      project: projectMember.project,
+      role: UserRolesEnum.ADMIN,
+    });
+
+    if (adminCount <= 1) {
+      throw new ApiError(
+        409,
+        "A project must have at least one Admin. Add or promote another Admin first.",
+      );
+    }
+  }
+
   projectMember = await ProjectMember.findByIdAndUpdate(
     projectMember._id,
     {
@@ -456,6 +473,20 @@ const deleteMember = asyncHandler(async (req, res) => {
 
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
+  }
+
+  if (projectMember.role === UserRolesEnum.ADMIN) {
+    const adminCount = await ProjectMember.countDocuments({
+      project: projectMember.project,
+      role: UserRolesEnum.ADMIN,
+    });
+
+    if (adminCount <= 1) {
+      throw new ApiError(
+        409,
+        "A project must have at least one Admin. Add or promote another Admin first.",
+      );
+    }
   }
 
   await recordActivity({

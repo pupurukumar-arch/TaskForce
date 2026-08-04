@@ -174,6 +174,28 @@ test("project admin can create a project and add a member", async () => {
   assert.equal(addMember.status, 201);
 });
 
+test("the last project Admin cannot be demoted or removed", async () => {
+  const demoteLastAdmin = await request(`/projects/${projectId}/members/${admin._id}`, {
+    method: "PUT",
+    token: adminToken,
+    body: { newRole: "member" },
+  });
+  assert.equal(demoteLastAdmin.status, 409);
+  assert.match(demoteLastAdmin.body.message, /at least one Admin/i);
+
+  const removeLastAdmin = await request(`/projects/${projectId}/members/${admin._id}`, {
+    method: "DELETE",
+    token: adminToken,
+  });
+  assert.equal(removeLastAdmin.status, 409);
+
+  const adminMembership = await ProjectMember.findOne({
+    project: projectId,
+    user: admin._id,
+  });
+  assert.equal(adminMembership.role, "admin");
+});
+
 test("members cannot create tasks", async () => {
   const response = await request(`/tasks/${projectId}`, {
     method: "POST",
@@ -213,6 +235,16 @@ test("task priority and due-date summary work", async () => {
   assert.equal(dueSummary.status, 200);
   assert.equal(dueSummary.body.data.counts.dueToday, 1);
 
+  const personalDeadlines = await request("/tasks/my-deadlines", { token: memberToken });
+  assert.equal(personalDeadlines.status, 200);
+  assert.equal(personalDeadlines.body.data.counts.dueToday, 1);
+  assert.equal(personalDeadlines.body.data.dueToday[0].project.name, suffix);
+
+  const personalCalendar = await request(`/tasks/my-calendar?month=${dueDate.toISOString().slice(0, 7)}`, { token: memberToken });
+  assert.equal(personalCalendar.status, 200);
+  assert.equal(personalCalendar.body.data.tasks.length, 1);
+  assert.equal(personalCalendar.body.data.tasks[0].title, "Priority task");
+
   const updateTask = await request(`/tasks/${projectId}/t/${taskId}`, {
     method: "PUT",
     token: adminToken,
@@ -220,6 +252,25 @@ test("task priority and due-date summary work", async () => {
   });
   assert.equal(updateTask.status, 200);
   assert.equal(updateTask.body.data.priority, "low");
+});
+
+test("a member submits an assigned task and an admin approves it", async () => {
+  const submitForReview = await request(
+    `/tasks/${projectId}/t/${taskId}/submit-review`,
+    { method: "POST", token: memberToken },
+  );
+  assert.equal(submitForReview.status, 200);
+  assert.equal(submitForReview.body.data.status, "in_review");
+  assert.equal(submitForReview.body.data.submittedForReviewBy, member._id.toString());
+
+  const approveTask = await request(`/tasks/${projectId}/t/${taskId}/review`, {
+    method: "POST",
+    token: adminToken,
+    body: { approved: true },
+  });
+  assert.equal(approveTask.status, 200);
+  assert.equal(approveTask.body.data.status, "done");
+  assert.equal(approveTask.body.data.approvedBy, admin._id.toString());
 });
 
 test("comments, activity, and notifications are stored for the right users", async () => {

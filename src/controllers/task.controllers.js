@@ -64,6 +64,56 @@ const getTaskDueSummary = asyncHandler(async (req, res) => {
   );
 });
 
+const getMyDeadlines = asyncHandler(async (req, res) => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const endOfWeek = new Date(startOfToday);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+  const openTaskFilter = {
+    assignedTo: req.user._id,
+    dueDate: { $exists: true },
+    status: { $ne: "done" },
+  };
+  const populateProject = { path: "project", select: "name" };
+  const [dueToday, dueThisWeek, overdue] = await Promise.all([
+    Task.find({ ...openTaskFilter, dueDate: { $gte: startOfToday, $lt: startOfTomorrow } }).populate(populateProject).sort({ dueDate: 1 }),
+    Task.find({ ...openTaskFilter, dueDate: { $gte: startOfTomorrow, $lt: endOfWeek } }).populate(populateProject).sort({ dueDate: 1 }),
+    Task.find({ ...openTaskFilter, dueDate: { $lt: startOfToday } }).populate(populateProject).sort({ dueDate: 1 }),
+  ]);
+
+  return res.status(200).json(new ApiResponse(200, {
+    dueToday,
+    dueThisWeek,
+    overdue,
+    counts: { dueToday: dueToday.length, dueThisWeek: dueThisWeek.length, overdue: overdue.length },
+  }, "Personal deadlines fetched successfully"));
+});
+
+const getMyCalendar = asyncHandler(async (req, res) => {
+  const monthValue = req.query.month;
+  const monthStart = monthValue
+    ? new Date(`${monthValue}-01T00:00:00`)
+    : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  if (Number.isNaN(monthStart.getTime())) {
+    throw new ApiError(400, "month must use YYYY-MM format");
+  }
+
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const tasks = await Task.find({
+    assignedTo: req.user._id,
+    dueDate: { $gte: monthStart, $lt: monthEnd },
+  }).populate("project", "name").sort({ dueDate: 1 });
+
+  return res.status(200).json(new ApiResponse(200, {
+    month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, "0")}`,
+    tasks,
+  }, "Personal calendar fetched successfully"));
+});
+
 const createTask = asyncHandler(async (req, res) => {
   const { title, description, assignedTo, status, difficulty, priority, dueDate } =
     req.body;
@@ -192,6 +242,52 @@ const updateTask = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, task, "Task updated successfully"));
 });
 
+const submitTaskForReview = asyncHandler(async (req, res) => {
+  const task = await Task.findOne({ _id: req.params.taskId, project: req.params.projectId });
+  if (!task) throw new ApiError(404, "Task not found");
+  if (!task.assignedTo || task.assignedTo.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Only the assigned member can submit this task for review");
+  }
+  if (task.status === "done") throw new ApiError(400, "Completed tasks cannot be submitted for review");
+
+  task.status = "in_review";
+  task.submittedForReviewBy = req.user._id;
+  task.submittedForReviewAt = new Date();
+  task.approvedBy = undefined;
+  task.approvedAt = undefined;
+  task.attachments.push(
+    ...(req.files || []).map((file) => ({
+      url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    })),
+  );
+  await task.save();
+
+  await recordActivity({ project: task.project, actor: req.user._id, type: "task_submitted_for_review", message: `Submitted task for review: ${task.title}`, details: { task: task._id } });
+  if (task.assignedBy && task.assignedBy.toString() !== req.user._id.toString()) {
+    await createNotification({ recipient: task.assignedBy, project: task.project, task: task._id, type: "task_submitted_for_review", message: `${req.user.username} submitted the task for review: ${task.title}` });
+  }
+  return res.status(200).json(new ApiResponse(200, task, "Task submitted for review"));
+});
+
+const reviewTask = asyncHandler(async (req, res) => {
+  const { approved } = req.body;
+  const task = await Task.findOne({ _id: req.params.taskId, project: req.params.projectId });
+  if (!task) throw new ApiError(404, "Task not found");
+  if (task.status !== "in_review") throw new ApiError(400, "Only tasks in review can be approved or sent back");
+
+  task.status = approved ? "done" : "in_progress";
+  task.approvedBy = approved ? req.user._id : undefined;
+  task.approvedAt = approved ? new Date() : undefined;
+  await task.save();
+  await recordActivity({ project: task.project, actor: req.user._id, type: approved ? "task_approved" : "task_sent_back", message: `${approved ? "Approved" : "Sent back"} task: ${task.title}`, details: { task: task._id } });
+  if (task.assignedTo && task.assignedTo.toString() !== req.user._id.toString()) {
+    await createNotification({ recipient: task.assignedTo, project: task.project, task: task._id, type: approved ? "task_approved" : "task_sent_back", message: `Your task was ${approved ? "approved" : "sent back for changes"}: ${task.title}` });
+  }
+  return res.status(200).json(new ApiResponse(200, task, approved ? "Task approved" : "Task sent back for changes"));
+});
+
 const deleteTask = asyncHandler(async (req, res) => {
   const task = await Task.findOneAndDelete({ _id: req.params.taskId, project: req.params.projectId });
   if (!task) throw new ApiError(404, "Task not found");
@@ -256,11 +352,15 @@ const deleteSubTask = asyncHandler(async (req, res) => {
 
 export {
   createSubTask,
+  submitTaskForReview,
+  reviewTask,
   createTask,
   deleteTask,
   deleteSubTask,
   getTaskById,
   getTaskDueSummary,
+  getMyDeadlines,
+  getMyCalendar,
   getTasks,
   updateSubTask,
   updateTask,

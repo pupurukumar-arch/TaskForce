@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
+      `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
     ),
   });
 
@@ -228,7 +228,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 const resendEmailVerification = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user?._id);
+  const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
     throw new ApiError(404, "User does not exist");
@@ -250,7 +250,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
+      `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
     ),
   });
 

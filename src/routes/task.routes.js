@@ -6,9 +6,13 @@ import {
   deleteSubTask,
   getTaskById,
   getTaskDueSummary,
+  getMyDeadlines,
+  getMyCalendar,
   getTasks,
   updateSubTask,
   updateTask,
+  submitTaskForReview,
+  reviewTask,
 } from "../controllers/task.controllers.js";
 import {
   createTaskComment,
@@ -31,6 +35,9 @@ const router = Router();
 const managers = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN];
 
 router.use(verifyJWT);
+
+router.route("/my-deadlines").get(getMyDeadlines);
+router.route("/my-calendar").get(getMyCalendar);
 
 router
   .route("/:projectId")
@@ -58,6 +65,17 @@ router
     updateTask,
   )
   .delete(validateProjectPermission(managers), deleteTask);
+
+router
+  .route("/:projectId/t/:taskId/submit-review")
+  .post(
+    validateProjectPermission(AvailableUserRole),
+    upload.array("attachments", 5),
+    submitTaskForReview,
+  );
+router
+  .route("/:projectId/t/:taskId/review")
+  .post(validateProjectPermission(managers), reviewTask);
 
 router
   .route("/:projectId/t/:taskId/comments")
