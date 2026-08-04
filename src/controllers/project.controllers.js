@@ -1,11 +1,23 @@
 import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
+import { Task } from "../models/task.models.js";
+import { Subtask } from "../models/subtask.models.js";
+import { ProjectNote } from "../models/note.models.js";
+import { TaskComment } from "../models/taskcomment.models.js";
+import { Activity } from "../models/activity.models.js";
+import { Notification } from "../models/notification.models.js";
+import { ProjectInvite } from "../models/projectinvite.models.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import { getTaskSummaryForUser } from "../utils/task-summary.js";
+import { recordActivity } from "../utils/activity.js";
+import { createNotification } from "../utils/notification.js";
+import { projectInvitationMailgenContent, sendEmail } from "../utils/mail.js";
+import crypto from "crypto";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -17,15 +29,15 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "projects",
-        localField: "projects",
+        localField: "project",
         foreignField: "_id",
-        as: "projects",
+        as: "project",
         pipeline: [
           {
             $lookup: {
               from: "projectmembers",
               localField: "_id",
-              foreignField: "projects",
+              foreignField: "project",
               as: "projectmembers",
             },
           },
@@ -45,12 +57,12 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $project: {
         project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          members: 1,
-          createdAt: 1,
-          createdBy: 1,
+          _id: "$project._id",
+          name: "$project.name",
+          description: "$project.description",
+          members: "$project.members",
+          createdAt: "$project.createdAt",
+          createdBy: "$project.createdBy",
         },
         role: 1,
         _id: 0,
@@ -91,6 +103,13 @@ const createProject = asyncHandler(async (req, res) => {
     role: UserRolesEnum.ADMIN,
   });
 
+  await recordActivity({
+    project: project._id,
+    actor: req.user._id,
+    type: "project_created",
+    message: `Created project: ${project.name}`,
+  });
+
   return res
     .status(201)
     .json(new ApiResponse(201, project, "Project created Successfully"));
@@ -120,10 +139,27 @@ const updateProject = asyncHandler(async (req, res) => {
 const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  const project = await Project.findByIdAndDelete(projectId);
+  const project = await Project.findById(projectId);
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
+
+  const tasks = await Task.find({ project: projectId }).select("_id");
+  const taskIds = tasks.map((task) => task._id);
+
+  await Promise.all([
+    Subtask.deleteMany({ task: { $in: taskIds } }),
+    TaskComment.deleteMany({ task: { $in: taskIds } }),
+    Task.deleteMany({ project: projectId }),
+    ProjectNote.deleteMany({ project: projectId }),
+    ProjectMember.deleteMany({ project: projectId }),
+    Activity.deleteMany({ project: projectId }),
+    Notification.deleteMany({ project: projectId }),
+    ProjectInvite.deleteMany({ project: projectId }),
+  ]);
+
+  await project.deleteOne();
+
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project deleted successfully"));
@@ -137,6 +173,16 @@ const addMembersToProject = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
+
+  const project = await Project.findById(projectId).select("name");
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  const existingMembership = await ProjectMember.exists({
+    user: user._id,
+    project: projectId,
+  });
 
   await ProjectMember.findOneAndUpdate(
     {
@@ -154,9 +200,124 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     },
   );
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_added",
+    message: `Added ${user.username} to the project as ${role}`,
+    details: { user: user._id, role },
+  });
+
+  if (!existingMembership && user._id.toString() !== req.user._id.toString()) {
+    await createNotification({
+      recipient: user._id,
+      project: project._id,
+      type: "project_member_added",
+      message: `You were added to the project: ${project.name}`,
+    });
+  }
+
   return res
     .status(201)
     .json(new ApiResponse(201, {}, "Project member added successfully"));
+});
+
+const inviteUnregisteredMember = asyncHandler(async (req, res) => {
+  const { email, role } = req.body;
+  const { projectId } = req.params;
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    throw new ApiError(409, "This user is already registered. Add them as a project member instead.");
+  }
+
+  const project = await Project.findById(projectId).select("name");
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  const invitationToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(invitationToken)
+    .digest("hex");
+  const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await ProjectInvite.findOneAndUpdate(
+    { project: projectId, email: email.toLowerCase() },
+    {
+      project: projectId,
+      email: email.toLowerCase(),
+      role,
+      invitedBy: req.user._id,
+      token: hashedToken,
+      tokenExpiry,
+      acceptedAt: undefined,
+    },
+    { new: true, upsert: true, runValidators: true },
+  );
+
+  const invitationBaseUrl =
+    process.env.PROJECT_INVITE_REDIRECT_URL || `${process.env.CORS_ORIGIN}/register`;
+  const invitationUrl = `${invitationBaseUrl}?invite=${invitationToken}`;
+
+  await sendEmail({
+    email,
+    subject: `Invitation to join ${project.name}`,
+    mailgenContent: projectInvitationMailgenContent(project.name, invitationUrl),
+  });
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_invitation_sent",
+    message: `Sent a project invitation to ${email}`,
+    details: { email, role },
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, "Project invitation sent successfully"));
+});
+
+const acceptProjectInvitation = asyncHandler(async (req, res) => {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.invitationToken)
+    .digest("hex");
+  const invitation = await ProjectInvite.findOne({
+    token: hashedToken,
+    tokenExpiry: { $gt: Date.now() },
+    acceptedAt: { $exists: false },
+  }).select("+token");
+
+  if (!invitation) {
+    throw new ApiError(400, "Invitation is invalid or expired");
+  }
+  if (invitation.email !== req.user.email) {
+    throw new ApiError(403, "This invitation belongs to a different email address");
+  }
+
+  await ProjectMember.findOneAndUpdate(
+    { project: invitation.project, user: req.user._id },
+    { project: invitation.project, user: req.user._id, role: invitation.role },
+    { new: true, upsert: true, runValidators: true },
+  );
+
+  invitation.acceptedAt = new Date();
+  await invitation.save();
+
+  await recordActivity({
+    project: invitation.project,
+    actor: req.user._id,
+    type: "project_invitation_accepted",
+    message: `${req.user.username} accepted a project invitation`,
+    details: { user: req.user._id, role: invitation.role },
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Project invitation accepted successfully"));
 });
 
 const getProjectMembers = asyncHandler(async (req, res) => {
@@ -216,6 +377,27 @@ const getProjectMembers = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, projectMembers, "Project members fetched"));
 });
 
+const getMemberTaskSummary = asyncHandler(async (req, res) => {
+  const projectMember = await ProjectMember.findOne({
+    project: req.params.projectId,
+    user: req.params.userId,
+  }).populate("user", "username fullName avatar skills");
+
+  if (!projectMember) {
+    throw new ApiError(404, "Project member not found");
+  }
+
+  const summary = await getTaskSummaryForUser(projectMember.user._id);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { member: projectMember.user, ...summary },
+      "Member task summary fetched successfully",
+    ),
+  );
+});
+
 const updateMemberRole = asyncHandler(async (req, res) => {
   const { projectId, userId } = req.params;
   const { newRole } = req.body;
@@ -233,6 +415,23 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  if (
+    projectMember.role === UserRolesEnum.ADMIN &&
+    newRole !== UserRolesEnum.ADMIN
+  ) {
+    const adminCount = await ProjectMember.countDocuments({
+      project: projectMember.project,
+      role: UserRolesEnum.ADMIN,
+    });
+
+    if (adminCount <= 1) {
+      throw new ApiError(
+        409,
+        "A project must have at least one Admin. Add or promote another Admin first.",
+      );
+    }
+  }
+
   projectMember = await ProjectMember.findByIdAndUpdate(
     projectMember._id,
     {
@@ -244,6 +443,14 @@ const updateMemberRole = asyncHandler(async (req, res) => {
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
   }
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_role_updated",
+    message: `Updated a project member role to ${newRole}`,
+    details: { user: userId, role: newRole },
+  });
 
   return res
     .status(200)
@@ -268,6 +475,28 @@ const deleteMember = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  if (projectMember.role === UserRolesEnum.ADMIN) {
+    const adminCount = await ProjectMember.countDocuments({
+      project: projectMember.project,
+      role: UserRolesEnum.ADMIN,
+    });
+
+    if (adminCount <= 1) {
+      throw new ApiError(
+        409,
+        "A project must have at least one Admin. Add or promote another Admin first.",
+      );
+    }
+  }
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    type: "project_member_removed",
+    message: "Removed a member from the project",
+    details: { user: userId },
+  });
+
   projectMember = await ProjectMember.findByIdAndDelete(projectMember._id);
 
   if (!projectMember) {
@@ -287,11 +516,14 @@ const deleteMember = asyncHandler(async (req, res) => {
 
 export {
   addMembersToProject,
+  acceptProjectInvitation,
   createProject,
   deleteMember,
   getProjects,
+  inviteUnregisteredMember,
   getProjectById,
   getProjectMembers,
+  getMemberTaskSummary,
   updateProject,
   deleteProject,
   updateMemberRole,

@@ -1,5 +1,6 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
+import { ApiError } from "./api-error.js";
 
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
@@ -35,9 +36,10 @@ const sendEmail = async (options) => {
     await transporter.sendMail(mail);
   } catch (error) {
     console.error(
-      "Email service failed siliently. Make sure that you have provided your MAILTRAP credentials in the .env file",
+      "Email service failed. Make sure that you have provided your MAILTRAP credentials in the .env file",
     );
     console.error("Error: ", error);
+    throw new ApiError(502, "Unable to send email. Please try again later.");
   }
 };
 
@@ -81,8 +83,27 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   };
 };
 
+const projectInvitationMailgenContent = (projectName, invitationUrl) => {
+  return {
+    body: {
+      name: "there",
+      intro: `You have been invited to join the project: ${projectName}.`,
+      action: {
+        instructions: "Create an account or log in, then accept the project invitation.",
+        button: {
+          color: "#22BC66",
+          text: "View invitation",
+          link: invitationUrl,
+        },
+      },
+      outro: "This invitation expires in 7 days.",
+    },
+  };
+};
+
 export {
   emailVerificationMailgenContent,
   forgotPasswordMailgenContent,
+  projectInvitationMailgenContent,
   sendEmail,
 };

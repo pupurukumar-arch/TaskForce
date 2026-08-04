@@ -6,6 +6,25 @@ dotenv.config({
   path: "./.env",
 });
 
+if (process.env.NODE_ENV === "production") {
+  const requiredEnvironmentVariables = [
+    "MONGO_URI",
+    "ACCESS_TOKEN_SECRET",
+    "REFRESH_TOKEN_SECRET",
+    "CORS_ORIGIN",
+  ];
+  const missingEnvironmentVariables = requiredEnvironmentVariables.filter(
+    (name) => !process.env[name],
+  );
+
+  if (missingEnvironmentVariables.length) {
+    console.error(
+      `Missing required production environment variables: ${missingEnvironmentVariables.join(", ")}`,
+    );
+    process.exit(1);
+  }
+}
+
 const port = process.env.PORT || 3000;
 
 connectDB()

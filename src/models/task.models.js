@@ -1,5 +1,12 @@
 import mongoose, { Schema } from "mongoose";
-import { AvailableTaskStatues, TaskStatusEnum } from "../utils/constants.js";
+import {
+  AvailableTaskDifficulties,
+  AvailableTaskPriorities,
+  AvailableTaskStatues,
+  TaskDifficultyEnum,
+  TaskPriorityEnum,
+  TaskStatusEnum,
+} from "../utils/constants.js";
 
 const taskSchema = new Schema(
   {
@@ -27,6 +34,29 @@ const taskSchema = new Schema(
       enum: AvailableTaskStatues,
       default: TaskStatusEnum.TODO,
     },
+    difficulty: {
+      type: String,
+      enum: AvailableTaskDifficulties,
+      default: TaskDifficultyEnum.MEDIUM,
+    },
+    priority: {
+      type: String,
+      enum: AvailableTaskPriorities,
+      default: TaskPriorityEnum.MEDIUM,
+    },
+    dueDate: {
+      type: Date,
+    },
+    submittedForReviewBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    submittedForReviewAt: Date,
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    approvedAt: Date,
     attachments: {
       type: [
         {

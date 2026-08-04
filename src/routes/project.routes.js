@@ -1,19 +1,24 @@
 import { Router } from "express";
 import {
   addMembersToProject,
+  acceptProjectInvitation,
   createProject,
   deleteMember,
   getProjects,
   getProjectById,
   getProjectMembers,
+  getMemberTaskSummary,
   updateProject,
   deleteProject,
   updateMemberRole,
+  inviteUnregisteredMember,
 } from "../controllers/project.controllers.js";
+import { getProjectActivities } from "../controllers/activity.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import {
   createProjectValidator,
   addMembertoProjectValidator,
+  updateMemberRoleValidator,
 } from "../validators/index.js";
 import {
   verifyJWT,
@@ -30,6 +35,10 @@ router
   .post(createProjectValidator(), validate, createProject);
 
 router
+  .route("/invitations/:invitationToken/accept")
+  .post(acceptProjectInvitation);
+
+router
   .route("/:projectId")
   .get(validateProjectPermission(AvailableUserRole), getProjectById)
   .put(
@@ -42,7 +51,7 @@ router
 
 router
   .route("/:projectId/members")
-  .get(getProjectMembers)
+  .get(validateProjectPermission(AvailableUserRole), getProjectMembers)
   .post(
     validateProjectPermission([UserRolesEnum.ADMIN]),
     addMembertoProjectValidator(),
@@ -51,8 +60,33 @@ router
   );
 
 router
+  .route("/:projectId/invitations")
+  .post(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    addMembertoProjectValidator(),
+    validate,
+    inviteUnregisteredMember,
+  );
+
+router
+  .route("/:projectId/members/:userId/task-summary")
+  .get(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    getMemberTaskSummary,
+  );
+
+router
+  .route("/:projectId/activity")
+  .get(validateProjectPermission(AvailableUserRole), getProjectActivities);
+
+router
   .route("/:projectId/members/:userId")
-  .put(validateProjectPermission([UserRolesEnum.ADMIN]), updateMemberRole)
+  .put(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    updateMemberRoleValidator(),
+    validate,
+    updateMemberRole,
+  )
   .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteMember);
 
 export default router;

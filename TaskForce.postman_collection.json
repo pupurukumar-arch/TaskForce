@@ -1,0 +1,107 @@
+{
+  "info": {
+    "_postman_id": "d1f345a9-682e-4d06-87ce-1737574352a1",
+    "name": "TaskForce API",
+    "description": "All TaskForce API routes. Set collection variables before sending protected or resource-specific requests. No real credentials are stored in this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "verificationToken", "value": "" },
+    { "key": "resetToken", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "memberUserId", "value": "" },
+    { "key": "taskId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "subTaskId", "value": "" },
+    { "key": "noteId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Health check", "request": { "method": "GET", "url": "{{baseUrl}}/healthcheck" } }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register user",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"ada@example.com\",\n  \"username\": \"ada\",\n  \"password\": \"replace-with-a-strong-password\",\n  \"fullName\": \"Ada Lovelace\"\n}" }, "url": "{{baseUrl}}/auth/register" }
+        },
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "exec": ["const response = pm.response.json();", "if (response.data?.accessToken) pm.collectionVariables.set('accessToken', response.data.accessToken);", "if (response.data?.refreshToken) pm.collectionVariables.set('refreshToken', response.data.refreshToken);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"ada@example.com\",\n  \"password\": \"replace-with-a-strong-password\"\n}" }, "url": "{{baseUrl}}/auth/login" }
+        },
+        { "name": "Verify email", "request": { "method": "GET", "url": "{{baseUrl}}/auth/verify-email/{{verificationToken}}" } },
+        { "name": "Refresh access token", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }, "url": "{{baseUrl}}/auth/refresh-token" } },
+        { "name": "Forgot password", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"ada@example.com\"\n}" }, "url": "{{baseUrl}}/auth/forgot-password" } },
+        { "name": "Reset password", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"newPassword\": \"replace-with-a-new-strong-password\"\n}" }, "url": "{{baseUrl}}/auth/reset-password/{{resetToken}}" } },
+        { "name": "Logout", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/auth/logout" } },
+        { "name": "Current user", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/auth/current-user" } },
+        { "name": "Update my skills", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"skills\": [\"Node.js\", \"MongoDB\", \"REST APIs\"]\n}" }, "url": "{{baseUrl}}/auth/profile/skills" } },
+        { "name": "My task summary", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/auth/task-summary" } },
+        { "name": "Change password", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"oldPassword\": \"replace-with-a-strong-password\",\n  \"newPassword\": \"replace-with-a-new-strong-password\"\n}" }, "url": "{{baseUrl}}/auth/change-password" } },
+        { "name": "Resend email verification", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/auth/resend-email-verification" } }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        { "name": "List projects", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects" } },
+        { "name": "Create project", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Website redesign\",\n  \"description\": \"Plan and deliver the new marketing site.\"\n}" }, "url": "{{baseUrl}}/projects" } },
+        { "name": "Get project", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}" } },
+        { "name": "Update project", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Website redesign v2\",\n  \"description\": \"Updated scope.\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}" } },
+        { "name": "Delete project", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}" } },
+        { "name": "List project members", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/members" } },
+        { "name": "Get member task summary (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}/task-summary" } },
+        { "name": "Get project activity", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/activity" } },
+        { "name": "Add project member", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"member@example.com\",\n  \"role\": \"member\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/members" } },
+        { "name": "Invite unregistered member", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"new-member@example.com\",\n  \"role\": \"member\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/invitations" } },
+        { "name": "Accept project invitation", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/invitations/{{invitationToken}}/accept" } },
+        { "name": "Update project member role", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"newRole\": \"project_admin\"\n}" }, "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}" } },
+        { "name": "Remove project member", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/projects/{{projectId}}/members/{{memberUserId}}" } }
+      ]
+    },
+    {
+      "name": "Tasks and subtasks",
+      "item": [
+        { "name": "List tasks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}" } },
+        { "name": "Get due-date summary", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/due-summary" } },
+        { "name": "Create task", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create homepage wireframes", "type": "text" }, { "key": "description", "value": "Prepare desktop and mobile flows.", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "todo", "type": "text" }, { "key": "difficulty", "value": "medium", "type": "text" }, { "key": "priority", "value": "high", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}" } },
+        { "name": "Get task", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
+        { "name": "List task comments", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments" } },
+        { "name": "Add task comment", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Task update: implementation has started.\"\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments" } },
+        { "name": "Delete task comment", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/comments/{{commentId}}" } },
+        { "name": "Update task", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Create reviewed homepage wireframes", "type": "text" }, { "key": "description", "value": "", "type": "text" }, { "key": "assignedTo", "value": "", "type": "text" }, { "key": "status", "value": "in_progress", "type": "text" }, { "key": "difficulty", "value": "hard", "type": "text" }, { "key": "priority", "value": "high", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
+        { "name": "Delete task", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}" } },
+        { "name": "Create subtask", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Review wireframes\"\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/t/{{taskId}}/subtasks" } },
+        { "name": "Update subtask", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"isCompleted\": true\n}" }, "url": "{{baseUrl}}/tasks/{{projectId}}/st/{{subTaskId}}" } },
+        { "name": "Delete subtask", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/tasks/{{projectId}}/st/{{subTaskId}}" } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List my notifications", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications" } },
+        { "name": "Mark notification as read", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications/{{notificationId}}/read" } }
+      ]
+    },
+    {
+      "name": "Project notes",
+      "item": [
+        { "name": "List notes", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notes/{{projectId}}" } },
+        { "name": "Create note", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Kickoff completed; wireframes are due Friday.\"\n}" }, "url": "{{baseUrl}}/notes/{{projectId}}" } },
+        { "name": "Get note", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notes/{{projectId}}/n/{{noteId}}" } },
+        { "name": "Update note", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Kickoff completed; wireframes are due Monday.\"\n}" }, "url": "{{baseUrl}}/notes/{{projectId}}/n/{{noteId}}" } },
+        { "name": "Delete note", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notes/{{projectId}}/n/{{noteId}}" } }
+      ]
+    }
+  ]
+}

@@ -21,11 +21,12 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 #### 3.1 User Authentication & Authorization
 
 - **User Registration:** Account creation with email verification
-- **User Login:** Secure authentication with JWT tokens
+- **Verified User Login:** Secure JWT login available only after email verification
 - **Password Management:** Change password, forgot/reset password functionality
 - **Email Verification:** Account verification via email tokens
 - **Token Management:** Access token refresh mechanism
 - **Role-Based Access Control:** Three-tier permission system (Admin, Project Admin, Member)
+- **Member Profile Skills:** Members can maintain a list of technical skills in their profile
 
 #### 3.2 Project Management
 
@@ -38,9 +39,13 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 #### 3.3 Team Member Management
 
 - **Member Addition:** Invite users to projects via email
+- **External Member Invitations:** Admins can send a seven-day registration invitation to an email address that does not yet have an account
 - **Member Listing:** View all project team members
 - **Role Management:** Update member roles within projects (Admin only)
 - **Member Removal:** Remove team members from projects (Admin only)
+- **Member Workload View:** Project admins can view a member's assigned-task and in-progress difficulty counts before assigning work
+- **Activity History:** Project members can view a timeline of important collaboration events
+- **In-app Notifications:** Members receive notifications when added to a project, assigned a task, or mentioned in a task comment
 
 #### 3.4 Task Management
 
@@ -52,6 +57,11 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - **File Attachments:** Support for multiple file attachments on tasks
 - **Task Assignment:** Assign tasks to specific team members
 - **Status Tracking:** Three-state status system (Todo, In Progress, Done)
+- **Difficulty Tracking:** Tasks are categorised as Easy, Medium, or Hard
+- **Priority Tracking:** Tasks use Low, Medium, or High priority to help teams focus on urgent work
+- **Personal Task Summary:** Members can view their total assigned tasks and in-progress tasks grouped by difficulty
+- **Due Dates:** Tasks can have a due date and are grouped as Due Today, Due This Week, or Overdue
+- **Task Comments:** Project members can add, read, and remove comments on tasks
 
 #### 3.5 Subtask Management
 
@@ -88,6 +98,8 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `POST /forgot-password` - Request password reset
 - `POST /reset-password/:resetToken` - Reset forgotten password
 - `POST /resend-email-verification` - Resend verification email (secured)
+- `PUT /profile/skills` - Save the logged-in user's skills (secured)
+- `GET /task-summary` - Get the logged-in user's task workload summary (secured)
 
 **Project Routes** (`/api/v1/projects/`)
 
@@ -98,19 +110,32 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `DELETE /:projectId` - Delete project (secured, Admin only)
 - `GET /:projectId/members` - List project members (secured)
 - `POST /:projectId/members` - Add project member (secured, Admin only)
+- `POST /:projectId/invitations` - Email an invitation to an unregistered future member (secured, Admin only)
+- `POST /invitations/:invitationToken/accept` - Accept an invitation after registering and logging in with the invited email (secured)
 - `PUT /:projectId/members/:userId` - Update member role (secured, Admin only)
 - `DELETE /:projectId/members/:userId` - Remove member (secured, Admin only)
+- `GET /:projectId/members/:userId/task-summary` - View a member's workload before task assignment (secured, Admin only)
+- `GET /:projectId/activity` - View project activity history (secured, role-based)
 
 **Task Routes** (`/api/v1/tasks/`)
 
 - `GET /:projectId` - List project tasks (secured, role-based)
-- `POST /:projectId` - Create task (secured, Admin/Project Admin)
+- `GET /:projectId/due-summary` - Group open tasks by due-date urgency (secured, role-based)
+- `POST /:projectId` - Create task with status, difficulty, assignee, and optional attachments (secured, Admin/Project Admin)
 - `GET /:projectId/t/:taskId` - Get task details (secured, role-based)
 - `PUT /:projectId/t/:taskId` - Update task (secured, Admin/Project Admin)
 - `DELETE /:projectId/t/:taskId` - Delete task (secured, Admin/Project Admin)
+- `GET /:projectId/t/:taskId/comments` - List task comments (secured, role-based)
+- `POST /:projectId/t/:taskId/comments` - Add a task comment (secured, role-based)
+- `DELETE /:projectId/t/:taskId/comments/:commentId` - Delete own comment or any comment as a manager (secured)
 - `POST /:projectId/t/:taskId/subtasks` - Create subtask (secured, Admin/Project Admin)
 - `PUT /:projectId/st/:subTaskId` - Update subtask (secured, role-based)
 - `DELETE /:projectId/st/:subTaskId` - Delete subtask (secured, Admin/Project Admin)
+
+**Notification Routes** (`/api/v1/notifications/`)
+
+- `GET /` - List the logged-in user's notifications (secured)
+- `PATCH /:notificationId/read` - Mark a notification as read (secured, owner only)
 
 **Note Routes** (`/api/v1/notes/`)
 
@@ -152,12 +177,37 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - `in_progress` - Task currently being worked on
 - `done` - Task completed
 
+**Task Difficulty:**
+
+- `easy` - Low-complexity task
+- `medium` - Standard-complexity task
+- `hard` - High-complexity task
+
+**Task Priority:**
+
+- `low` - Can be completed later
+- `medium` - Normal work priority
+- `high` - Needs prompt attention
+
+**Member Profile:**
+
+- `skills` - A list of technical skills entered by the member, such as Node.js, MongoDB, or React
+
+**Task Collaboration:**
+
+- `dueDate` - Optional task deadline used for Due Today, Due This Week, and Overdue views
+- `TaskComment` - Stores a task comment, its author, content, and timestamp
+- `Activity` - Stores project actions such as project creation, member addition, task creation, status changes, and comments
+- `Notification` - Stores a user notification for project addition, task assignment, or a task-comment mention
+- `ProjectInvite` - Stores a hashed, seven-day project invitation for an unregistered email address
+
 ### 5. Security Features
 
 - JWT-based authentication with refresh tokens
 - Role-based authorization middleware
 - Input validation on all endpoints
 - Email verification for account security
+- Verified-email requirement before login tokens are issued
 - Secure password reset functionality
 - File upload security with Multer middleware
 - CORS configuration for cross-origin requests
@@ -177,4 +227,6 @@ Project Camp Backend is a RESTful API service designed to support collaborative 
 - Role-based access control implementation
 - File attachment capability for enhanced collaboration
 - Email notification system for user verification and password reset
+- Practical workload visibility for fair task assignment
+- Deadline tracking, task collaboration, and a project activity timeline
 - Comprehensive API documentation through endpoint structure
