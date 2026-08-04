@@ -87,21 +87,6 @@ Create a local `.env` file and set the following values. Never commit `.env`. Th
 | `MAILTRAP_SMTP_PASS` | SMTP password |
 | `TEST_MONGO_URI` | A separate database used only by `npm test` |
 
-Minimal local example:
-
-```env
-PORT=3000
-MONGO_URI=mongodb://127.0.0.1:27017/taskforce
-TEST_MONGO_URI=mongodb://127.0.0.1:27017/taskforge_test
-ACCESS_TOKEN_SECRET=replace_with_a_long_random_value
-ACCESS_TOKEN_EXPIRY=1d
-REFRESH_TOKEN_SECRET=replace_with_a_different_long_random_value
-REFRESH_TOKEN_EXPIRY=10d
-CORS_ORIGIN=http://localhost:5173
-FORGOT_PASSWORD_REDIRECT_URL=http://localhost:5173/reset-password
-PROJECT_INVITE_REDIRECT_URL=http://localhost:5173/register
-```
-
 Use different database names for `MONGO_URI` and `TEST_MONGO_URI`. This prevents automated test data from ever touching real development data.
 
 ## Application flow
