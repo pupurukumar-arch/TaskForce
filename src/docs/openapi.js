@@ -73,7 +73,7 @@ const openapiSpecification = {
     "/auth/refresh-token": {
       post: {
         tags: ["Authentication"], summary: "Refresh an access token",
-        requestBody: { content: { "application/json": { schema: { type: "object", properties: { refreshToken: { type: "string" } } } } } },
+        description: "Uses the HTTP-only refresh-token cookie set during login.",
         responses: jsonResponse("Access token refreshed"),
       },
     },

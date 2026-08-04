@@ -17,7 +17,7 @@ import { TaskBoardPage } from './components/TaskBoardPage'
 import { ProfilePage as ProfileWorkspacePage } from './components/ProfilePage'
 import { DeadlinesPage } from './components/DeadlinesPage'
 import { CalendarPage } from './components/CalendarPage'
-import { api, getToken, setToken } from './lib/api'
+import { api, setToken } from './lib/api'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -53,7 +53,7 @@ function FieldError({ text }) { return <span className="mt-1 block text-xs text-
 
 function ProtectedApp() {
   const [user, setUser] = useState(null); const [loading, setLoading] = useState(true)
-  useEffect(() => { if (!getToken()) { setLoading(false); return } api('/auth/current-user', { method: 'POST' }).then(setUser).catch(() => setToken('')).finally(() => setLoading(false)) }, [])
+  useEffect(() => { api('/auth/current-user', { method: 'POST' }).then(setUser).catch(() => setToken('')).finally(() => setLoading(false)) }, [])
   if (loading) return <div className="grid min-h-screen place-items-center">Loading Orbit…</div>
   if (!user) return <Navigate to="/login" replace />
   return <Routes><Route path="/dashboard" element={<DashboardPage user={user} />} /><Route path="/deadlines" element={<DeadlinesPage user={user} />} /><Route path="/calendar" element={<CalendarPage user={user} />} /><Route path="/change-password" element={<ChangePasswordPage user={user} />} /><Route path="/projects/invitations/:invitationToken/accept" element={<InvitationAcceptancePage user={user} />} /><Route path="/projects/:projectId/members" element={<ProjectMembersPage user={user} />} /><Route path="/projects/:projectId/invite" element={<InviteMemberPage user={user} />} /><Route path="/projects/:projectId/settings" element={<ProjectSettingsPage user={user} />} /><Route path="/projects/:projectId/activity" element={<ProjectActivityPage user={user} />} /><Route path="/projects/:projectId/notes" element={<ProjectNotesPage user={user} />} /><Route path="/projects/:projectId/tasks/:taskId" element={<TaskDetailPage user={user} />} /><Route path="/projects/:projectId/tasks" element={<TaskBoardPage user={user} />} /><Route path="/notifications" element={<NotificationsPage user={user} />} /><Route path="/profile" element={<ProfileWorkspacePage user={user} />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
