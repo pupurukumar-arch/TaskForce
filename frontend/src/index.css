@@ -10,6 +10,42 @@
 body { margin: 0; min-width: 320px; background: #f8fafc; color: #172033; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 button, input, select, textarea { font: inherit; }
 
+.orbit-theme-lens { position: relative; overflow: hidden; background: radial-gradient(circle at 35% 32%, #c4b5fd 0 14%, #6366f1 15% 43%, #312e81 44% 100%); box-shadow: inset -0.25rem -0.25rem 0.5rem rgb(15 23 42 / 28%), 0 0.5rem 1rem rgb(79 70 229 / 15%); }
+.orbit-theme-lens::after { content: ""; position: absolute; right: -0.13rem; top: -0.13rem; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: rgb(255 255 255 / 78%); transition: transform 220ms ease, background 220ms ease; }
+.orbit-theme-night .orbit-theme-lens { background: radial-gradient(circle at 38% 34%, #fde68a 0 12%, #f59e0b 13% 41%, #451a03 42% 100%); border-color: #3d4b73; }
+.orbit-theme-night .orbit-theme-lens::after { transform: translate(0.55rem, -0.45rem); background: #121a32; }
+
+.orbit-theme-night { background: radial-gradient(circle at 83% 0%, #242453 0, transparent 32rem), radial-gradient(circle at 16% 100%, #172c4b 0, transparent 30rem), #0b1020; color: #dbe7ff; }
+.orbit-theme-night main { background: transparent; }
+.orbit-theme-night aside { background: #090e1d; }
+.orbit-theme-night .bg-\[\#fffdf9\],
+.orbit-theme-night .bg-white,
+.orbit-theme-night .bg-white\/70,
+.orbit-theme-night .bg-white\/80 { background-color: #141c34 !important; }
+.orbit-theme-night .bg-slate-50,
+.orbit-theme-night .bg-slate-50\/70,
+.orbit-theme-night .bg-slate-50\/30 { background-color: #10182d !important; }
+.orbit-theme-night .bg-indigo-50,
+.orbit-theme-night .bg-indigo-50\/35,
+.orbit-theme-night .bg-indigo-50\/40,
+.orbit-theme-night .bg-indigo-50\/50,
+.orbit-theme-night .bg-blue-50\/60 { background-color: #1b2143 !important; }
+.orbit-theme-night .border-slate-100,
+.orbit-theme-night .border-slate-200,
+.orbit-theme-night .border-slate-200\/80,
+.orbit-theme-night .border-slate-300,
+.orbit-theme-night .border-indigo-100,
+.orbit-theme-night .border-indigo-200 { border-color: #2b385b !important; }
+.orbit-theme-night .text-slate-900,
+.orbit-theme-night .text-slate-800 { color: #eef3ff !important; }
+.orbit-theme-night .text-slate-700 { color: #d3def3 !important; }
+.orbit-theme-night .text-slate-600 { color: #b8c6df !important; }
+.orbit-theme-night .text-slate-500,
+.orbit-theme-night .text-slate-400 { color: #91a2c1 !important; }
+.orbit-theme-night .ring-white { --tw-ring-color: #141c34 !important; }
+.orbit-theme-night .orbit-page-content > a:first-child { border-color: #2b385b; background: #141c34; color: #c8d5ed; }
+.orbit-theme-night .orbit-page-content > a:first-child:hover { border-color: #43537c; background: #1b2545; color: #eff4ff; }
+
 .orbit-title { position: relative; display: grid; place-items: center; transform: translateX(-0.28rem); }
 .orbit-mark { position: absolute; right: calc(50% + 4.85rem); top: 0.34rem; display: inline-grid; place-items: center; width: 2.3rem; height: 2.3rem; opacity: 0.7; }
 .orbit-mark__planet { position: absolute; width: 0.32rem; height: 0.32rem; border-radius: 999px; background: #c4b5fd; box-shadow: 0 0 0.32rem rgb(196 181 253 / 28%); animation: planet-orbit 6.5s linear infinite; }
