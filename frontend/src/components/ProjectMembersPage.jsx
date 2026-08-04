@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { api } from '../lib/api'
 
 export function ProjectMembersPage({ user }) {
-  const projectId = window.location.pathname.split('/')[2]
+  const { projectId } = useParams()
   const [members, setMembers] = useState([]); const [error, setError] = useState(''); const [form, setForm] = useState({ email: '', role: 'member' }); const [message, setMessage] = useState('')
   const load = () => api(`/projects/${projectId}/members`).then(setMembers).catch((err) => setError(err.message))
   useEffect(() => { api(`/projects/${projectId}/members`).then(setMembers).catch((err) => setError(err.message)) }, [projectId])

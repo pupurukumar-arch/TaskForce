@@ -21,7 +21,9 @@ const userRegisterValidator = () => {
       .withMessage("Username must be in lower case")
       .isLength({ min: 3 })
       .withMessage("Username must be at least 3 characters long"),
-    body("password").trim().notEmpty().withMessage("Password is required"),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long"),
     body("fullName").optional().trim(),
   ];
 };
@@ -36,7 +38,9 @@ const userLoginValidator = () => {
 const userChangeCurrentPasswordValidator = () => {
   return [
     body("oldPassword").notEmpty().withMessage("Old password is required"),
-    body("newPassword").notEmpty().withMessage("New password is required"),
+    body("newPassword")
+      .isLength({ min: 8 })
+      .withMessage("New password must be at least 8 characters long"),
   ];
 };
 
@@ -51,7 +55,11 @@ const userForgotPasswordValidator = () => {
 };
 
 const userResetForgotPasswordValidator = () => {
-  return [body("newPassword").notEmpty().withMessage("Password is required")];
+  return [
+    body("newPassword")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long"),
+  ];
 };
 
 const userSkillsValidator = () => {

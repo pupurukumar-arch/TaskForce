@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 
+const verificationRequests = new Map()
+
+const verifyToken = (token) => {
+  if (!verificationRequests.has(token)) {
+    const request = api(`/auth/verify-email/${token}`).catch((error) => {
+      verificationRequests.delete(token)
+      throw error
+    })
+    verificationRequests.set(token, request)
+  }
+
+  return verificationRequests.get(token)
+}
+
 export function VerifyEmailPage() {
   const { verificationToken, token } = useParams()
   const [status, setStatus] = useState('loading')
@@ -21,7 +35,7 @@ export function VerifyEmailPage() {
       }
 
       try {
-        await api(`/auth/verify-email/${tokenValue}`)
+        await verifyToken(tokenValue)
         if (isCurrent) setStatus('success')
       } catch (requestError) {
         if (isCurrent) {

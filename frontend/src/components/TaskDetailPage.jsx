@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { TaskActions } from './TaskActions'
 import { TaskAttachments } from './TaskAttachments'
+import { TaskDiscussion } from './TaskDiscussion'
+import { TaskEditModal } from './TaskEditModal'
+import { TaskSubtasks } from './TaskSubtasks'
 import { api } from '../lib/api'
 import { canSubmitForReview, isManagerRole } from '../lib/taskAccess'
 
@@ -21,9 +24,7 @@ export function TaskDetailPage({ user }) {
   const [savingSubtaskId, setSavingSubtaskId] = useState('')
   const [deletingCommentId, setDeletingCommentId] = useState('')
   const [error, setError] = useState('')
-  const parts = window.location.pathname.split('/')
-  const projectId = parts[2]
-  const taskId = parts[4]
+  const { projectId, taskId } = useParams()
 
   const load = useCallback(() => Promise.all([
     api(`/tasks/${projectId}/t/${taskId}`),
@@ -193,27 +194,11 @@ export function TaskDetailPage({ user }) {
           <div><dt className="text-slate-500">Priority</dt><dd className="mt-1 font-medium capitalize">{task.priority}</dd></div>
           <div><dt className="text-slate-500">Difficulty</dt><dd className="mt-1 font-medium capitalize">{task.difficulty}</dd></div>
         </dl>
-        <section className="mt-8 border-t border-slate-200 pt-6">
-          <h3 className="font-semibold">Comments</h3>
-          <div className="mt-4 space-y-3">
-            {comments.map((item) => <article key={item._id} className="rounded-xl border border-indigo-100 bg-white p-4 shadow-sm shadow-indigo-50"><div className="flex items-start justify-between gap-3"><div><p className="text-sm">{item.content}</p><p className="mt-1 text-xs text-slate-500">{item.user?.fullName || item.user?.username || 'Member'}</p></div>{(isManager || item.user?._id === user._id) && <button type="button" onClick={() => deleteComment(item._id)} disabled={deletingCommentId === item._id} className="shrink-0 text-xs font-medium text-red-700 disabled:opacity-60">{deletingCommentId === item._id ? 'Deleting…' : 'Delete'}</button>}</div></article>)}
-            {!comments.length && <p className="text-sm text-slate-500">No comments yet.</p>}
-          </div>
-          <form onSubmit={addComment} className="mt-4 flex gap-2"><input required value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Write a comment" className="min-w-0 flex-1 rounded-lg border border-slate-300 p-3" /><button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white">Post</button></form>
-        </section>
+        <TaskDiscussion comments={comments} comment={comment} deletingCommentId={deletingCommentId} isManager={isManager} userId={user._id} onCommentChange={setComment} onDelete={deleteComment} onSubmit={addComment} />
       </section>
-      <aside className="h-fit rounded-2xl border border-slate-200 bg-[#fffaf0] p-6 shadow-sm shadow-slate-200/40">
-        <h3 className="font-semibold">Subtasks</h3>
-        <div className="mt-4 space-y-3">
-          {task.subtasks.map((subtask) => <article key={subtask._id} className="rounded-xl border border-amber-100 bg-[#fffdf9] p-3 text-sm">
-            {editingSubtaskId === subtask._id ? <div className="flex gap-2"><input autoFocus value={editedSubtaskTitle} onChange={(event) => setEditedSubtaskTitle(event.target.value)} className="min-w-0 flex-1 rounded border border-slate-300 p-2" /><button type="button" onClick={() => saveSubtaskTitle(subtask._id)} disabled={savingSubtaskId === subtask._id} className="text-indigo-700 disabled:opacity-60">Save</button><button type="button" onClick={() => { setEditingSubtaskId(''); setEditedSubtaskTitle('') }} className="text-slate-500">Cancel</button></div> : <div className="flex items-center gap-3"><input type="checkbox" checked={subtask.isCompleted} onChange={() => toggleSubtask(subtask)} /><span className={`min-w-0 flex-1 ${subtask.isCompleted ? 'text-slate-400 line-through' : ''}`}>{subtask.title}</span>{isManager && <><button type="button" onClick={() => { setEditingSubtaskId(subtask._id); setEditedSubtaskTitle(subtask.title) }} className="text-xs font-medium text-indigo-700">Edit</button><button type="button" onClick={() => deleteSubtask(subtask._id)} disabled={savingSubtaskId === subtask._id} className="text-xs font-medium text-red-700 disabled:opacity-60">{savingSubtaskId === subtask._id ? 'Deleting…' : 'Delete'}</button></>}</div>}
-          </article>)}
-          {!task.subtasks.length && <p className="text-sm text-slate-500">No subtasks yet.</p>}
-        </div>
-        {isManager && <form onSubmit={addSubtask} className="mt-4 flex gap-2"><input required value={subtaskTitle} onChange={(event) => setSubtaskTitle(event.target.value)} placeholder="Add subtask" className="min-w-0 flex-1 rounded-lg border border-amber-100 bg-[#fffdf9] p-3 text-sm" /><button className="rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white">Add</button></form>}
-      </aside>
+      <TaskSubtasks task={task} isManager={isManager} subtaskTitle={subtaskTitle} editingSubtaskId={editingSubtaskId} editedSubtaskTitle={editedSubtaskTitle} savingSubtaskId={savingSubtaskId} onAdd={addSubtask} onTitleChange={setSubtaskTitle} onToggle={toggleSubtask} onStartEdit={(subtask) => { setEditingSubtaskId(subtask._id); setEditedSubtaskTitle(subtask.title) }} onEditedTitleChange={setEditedSubtaskTitle} onSave={saveSubtaskTitle} onCancelEdit={() => { setEditingSubtaskId(''); setEditedSubtaskTitle('') }} onDelete={deleteSubtask} />
     </div>
-    {editing && <div className="fixed inset-0 z-10 grid place-items-center bg-slate-950/35 p-5"><form onSubmit={saveTask} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-bold">Edit task</h3><label className="mt-4 block text-sm">Title<input required value={editForm.title} onChange={(event) => setEditForm({ ...editForm, title: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label><label className="mt-3 block text-sm">Description<textarea value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label><label className="mt-3 block text-sm">Assign to<select value={editForm.assignedTo} onChange={(event) => setEditForm({ ...editForm, assignedTo: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3">{members.map((member) => <option key={member.user._id} value={member.user._id}>{member.user.fullName || member.user.username}</option>)}</select></label><div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="text-sm">Priority<select value={editForm.priority} onChange={(event) => setEditForm({ ...editForm, priority: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><label className="text-sm">Difficulty<select value={editForm.difficulty} onChange={(event) => setEditForm({ ...editForm, difficulty: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label><label className="text-sm">Due date<input type="date" value={editForm.dueDate} onChange={(event) => setEditForm({ ...editForm, dueDate: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label></div><div className="mt-4"><TaskAttachments files={attachmentFiles} onChange={setAttachmentFiles} /></div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => { setEditing(false); setAttachmentFiles([]) }} className="text-sm text-slate-500">Cancel</button><button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Save changes</button></div></form></div>}
+    {editing && <TaskEditModal form={editForm} members={members} files={attachmentFiles} onFormChange={setEditForm} onFilesChange={setAttachmentFiles} onClose={() => { setEditing(false); setAttachmentFiles([]) }} onSubmit={saveTask} />}
     {error && <p className="mt-5 rounded-lg bg-red-50 p-3 text-red-700">{error}</p>}
   </AppLayout>
 }

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
 
-const getProjectIdFromPath = () => window.location.pathname.split("/")[2];
-
-export function InviteMemberPage({ user, projectId = getProjectIdFromPath() }) {
+export function InviteMemberPage({ user }) {
+  const { projectId } = useParams();
   const [form, setForm] = useState({ email: "", role: "member" });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
