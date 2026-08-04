@@ -2,6 +2,7 @@ const jsonResponse = (description) => ({
   200: { description },
   400: { $ref: "#/components/responses/ValidationError" },
   401: { $ref: "#/components/responses/Unauthorized" },
+  429: { $ref: "#/components/responses/TooManyRequests" },
 });
 
 const authenticated = (summary, extra = {}) => ({
@@ -152,6 +153,7 @@ const openapiSpecification = {
     responses: {
       Unauthorized: { description: "Missing, expired, or invalid access token" },
       ValidationError: { description: "Request body or path value is invalid" },
+      TooManyRequests: { description: "Too many requests from this IP address; retry after the rate-limit window" },
     },
     schemas: {
       RegisterRequest: { type: "object", required: ["email", "username", "password"], properties: { email: { type: "string", format: "email" }, username: { type: "string" }, password: { type: "string", format: "password" }, fullName: { type: "string" } } },

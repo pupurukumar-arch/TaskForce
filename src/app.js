@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { ApiError } from "./utils/api-error.js";
 import { openapiSpecification } from "./docs/openapi.js";
+import { apiRateLimiter } from "./middlewares/rate-limit.middleware.js";
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
@@ -42,6 +43,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+app.use("/api/v1", apiRateLimiter);
 
 //  import the routes
 
