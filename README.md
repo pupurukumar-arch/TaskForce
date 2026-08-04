@@ -28,10 +28,12 @@ flowchart LR
     Auth --> DB[("MongoDB")]
     Work --> DB
     API --> Mail["Mailtrap Sandbox\nlocal email testing"]
-    API --> Uploads["Local task attachments"]
+    API --> Uploads["Private Amazon S3 attachments"]
 ```
 
 **Important design decision:** the frontend may hide controls based on role, but the Express API is the final permission check. Changing browser code cannot grant a Member manager access.
+
+Task attachments are stored in a private Amazon S3 bucket. MongoDB stores the file key and metadata; the API gives authorized project members a five-minute signed download link. Files are removed from S3 when their task or project is deleted.
 
 ## Requirements
 

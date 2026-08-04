@@ -9,6 +9,11 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { UserRolesEnum } from "../utils/constants.js";
 import { recordActivity } from "../utils/activity.js";
 import { createNotification } from "../utils/notification.js";
+import {
+  deleteTaskAttachments,
+  uploadTaskAttachments,
+  withAttachmentUrls,
+} from "../utils/s3.js";
 
 const getTasks = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: req.params.projectId })
@@ -126,11 +131,7 @@ const createTask = asyncHandler(async (req, res) => {
     if (!member) throw new ApiError(400, "Assignee must be a project member");
   }
 
-  const attachments = (req.files || []).map((file) => ({
-    url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
-    mimetype: file.mimetype,
-    size: file.size,
-  }));
+  const attachments = await uploadTaskAttachments(req.files);
 
   const task = await Task.create({
     title,
@@ -168,7 +169,7 @@ const createTask = asyncHandler(async (req, res) => {
     });
   }
 
-  return res.status(201).json(new ApiResponse(201, task, "Task created successfully"));
+  return res.status(201).json(new ApiResponse(201, await withAttachmentUrls(task), "Task created successfully"));
 });
 
 const getTaskById = asyncHandler(async (req, res) => {
@@ -182,7 +183,8 @@ const getTaskById = asyncHandler(async (req, res) => {
     .populate("createdBy", "avatar username fullName")
     .sort({ createdAt: 1 });
 
-  return res.status(200).json(new ApiResponse(200, { ...task.toObject(), subtasks }, "Task fetched successfully"));
+  const taskWithUrls = await withAttachmentUrls(task);
+  return res.status(200).json(new ApiResponse(200, { ...taskWithUrls, subtasks }, "Task fetched successfully"));
 });
 
 const updateTask = asyncHandler(async (req, res) => {
@@ -206,13 +208,7 @@ const updateTask = asyncHandler(async (req, res) => {
   if (difficulty !== undefined) task.difficulty = difficulty;
   if (priority !== undefined) task.priority = priority;
   if (dueDate !== undefined) task.dueDate = dueDate || undefined;
-  task.attachments.push(
-    ...(req.files || []).map((file) => ({
-      url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
-      mimetype: file.mimetype,
-      size: file.size,
-    })),
-  );
+  task.attachments.push(...(await uploadTaskAttachments(req.files)));
   await task.save();
 
   if (
@@ -239,7 +235,7 @@ const updateTask = asyncHandler(async (req, res) => {
     });
   }
 
-  return res.status(200).json(new ApiResponse(200, task, "Task updated successfully"));
+  return res.status(200).json(new ApiResponse(200, await withAttachmentUrls(task), "Task updated successfully"));
 });
 
 const submitTaskForReview = asyncHandler(async (req, res) => {
@@ -255,20 +251,14 @@ const submitTaskForReview = asyncHandler(async (req, res) => {
   task.submittedForReviewAt = new Date();
   task.approvedBy = undefined;
   task.approvedAt = undefined;
-  task.attachments.push(
-    ...(req.files || []).map((file) => ({
-      url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
-      mimetype: file.mimetype,
-      size: file.size,
-    })),
-  );
+  task.attachments.push(...(await uploadTaskAttachments(req.files)));
   await task.save();
 
   await recordActivity({ project: task.project, actor: req.user._id, type: "task_submitted_for_review", message: `Submitted task for review: ${task.title}`, details: { task: task._id } });
   if (task.assignedBy && task.assignedBy.toString() !== req.user._id.toString()) {
     await createNotification({ recipient: task.assignedBy, project: task.project, task: task._id, type: "task_submitted_for_review", message: `${req.user.username} submitted the task for review: ${task.title}` });
   }
-  return res.status(200).json(new ApiResponse(200, task, "Task submitted for review"));
+  return res.status(200).json(new ApiResponse(200, await withAttachmentUrls(task), "Task submitted for review"));
 });
 
 const reviewTask = asyncHandler(async (req, res) => {
@@ -291,6 +281,8 @@ const reviewTask = asyncHandler(async (req, res) => {
 const deleteTask = asyncHandler(async (req, res) => {
   const task = await Task.findOneAndDelete({ _id: req.params.taskId, project: req.params.projectId });
   if (!task) throw new ApiError(404, "Task not found");
+
+  await deleteTaskAttachments(task.attachments);
 
   await Promise.all([
     Subtask.deleteMany({ task: task._id }),

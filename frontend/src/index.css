@@ -11,6 +11,24 @@ body { margin: 0; min-width: 320px; background: #f8fafc; color: #172033; font-fa
 body.orbit-body-night { background: #0b1020; color: #dbe7ff; }
 button, input, select, textarea { font: inherit; }
 
+.orbit-app { transition: background 260ms ease, color 260ms ease; }
+.orbit-app:not(.orbit-theme-night) { background: radial-gradient(circle at 88% -8%, rgb(167 139 250 / 47%) 0, transparent 31rem), radial-gradient(circle at 5% 93%, rgb(125 211 252 / 48%) 0, transparent 33rem), #edf3ff; }
+.orbit-app:not(.orbit-theme-night) main { background-color: transparent; }
+.orbit-app:not(.orbit-theme-night) .bg-\[\#fffdf9\],
+.orbit-app:not(.orbit-theme-night) .bg-white,
+.orbit-app:not(.orbit-theme-night) .bg-white\/70,
+.orbit-app:not(.orbit-theme-night) .bg-white\/80 { background-color: rgb(255 255 255 / 88%) !important; }
+.orbit-app:not(.orbit-theme-night) .border-slate-100,
+.orbit-app:not(.orbit-theme-night) .border-slate-200,
+.orbit-app:not(.orbit-theme-night) .border-slate-200\/80,
+.orbit-app:not(.orbit-theme-night) .border-indigo-100 { border-color: #dce5f7 !important; }
+.orbit-app:not(.orbit-theme-night) .shadow-sm { box-shadow: 0 0.8rem 2rem rgb(71 85 105 / 10%) !important; }
+.orbit-app:not(.orbit-theme-night) article,
+.orbit-app:not(.orbit-theme-night) section.rounded-2xl { backdrop-filter: blur(0.75rem); }
+.orbit-app:not(.orbit-theme-night) input,
+.orbit-app:not(.orbit-theme-night) select,
+.orbit-app:not(.orbit-theme-night) textarea { background-color: #f8faff; }
+
 .orbit-theme-lens { position: relative; overflow: hidden; background: radial-gradient(circle at 35% 32%, #c4b5fd 0 14%, #6366f1 15% 43%, #312e81 44% 100%); box-shadow: inset -0.25rem -0.25rem 0.5rem rgb(15 23 42 / 28%), 0 0.5rem 1rem rgb(79 70 229 / 15%); }
 .orbit-theme-lens::after { content: ""; position: absolute; right: -0.13rem; top: -0.13rem; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: rgb(255 255 255 / 78%); transition: transform 220ms ease, background 220ms ease; }
 .orbit-theme-night .orbit-theme-lens { background: radial-gradient(circle at 38% 34%, #fde68a 0 12%, #f59e0b 13% 41%, #451a03 42% 100%); border-color: #3d4b73; }
