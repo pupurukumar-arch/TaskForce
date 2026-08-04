@@ -74,7 +74,7 @@ export function ProjectActivityPage({
       )}
 
       {!loading && !error && activities.length === 0 && (
-        <p className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+        <p className="mt-6 rounded-xl border border-slate-200 bg-[#fffdf9] p-6 text-sm text-slate-500 shadow-sm">
           No project activity yet.
         </p>
       )}

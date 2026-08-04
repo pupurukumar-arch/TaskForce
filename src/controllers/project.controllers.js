@@ -2,6 +2,7 @@ import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
+import { deleteTaskAttachments } from "../utils/s3.js";
 import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
 import { TaskComment } from "../models/taskcomment.models.js";
@@ -99,22 +100,25 @@ const getProjectProgress = asyncHandler(async (req, res) => {
   const summarize = (taskList) => ({
     totalTasks: taskList.length,
     completedTasks: taskList.filter((task) => task.status === "done").length,
+    inReviewTasks: taskList.filter((task) => task.status === "in_review").length,
     completedPercentage: taskList.length ? Math.round((taskList.filter((task) => task.status === "done").length / taskList.length) * 100) : 0,
     overdueTasks: taskList.filter(isOverdue).length,
   });
   tasks.forEach((task) => { statusCounts[task.status] += 1; });
 
   const isManager = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN].includes(req.user.role);
+  const isPersonalView = req.query.scope === "personal";
+  const showProjectOverview = isManager && !isPersonalView;
   const myTasks = tasks.filter((task) => task.assignedTo?.toString() === req.user._id.toString());
   const data = {
-    scope: isManager ? "project" : "personal",
-    summary: summarize(isManager ? tasks : myTasks),
-    statusCounts: isManager
+    scope: showProjectOverview ? "project" : "personal",
+    summary: summarize(showProjectOverview ? tasks : myTasks),
+    statusCounts: showProjectOverview
       ? statusCounts
       : myTasks.reduce((counts, task) => ({ ...counts, [task.status]: counts[task.status] + 1 }), { todo: 0, in_progress: 0, in_review: 0, done: 0 }),
   };
 
-  if (isManager) {
+  if (showProjectOverview) {
     const members = await ProjectMember.find({ project: req.params.projectId }).populate("user", "username fullName").lean();
     data.memberWorkload = members.map((member) => ({
       user: member.user,
@@ -182,8 +186,10 @@ const deleteProject = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project not found");
   }
 
-  const tasks = await Task.find({ project: projectId }).select("_id");
+  const tasks = await Task.find({ project: projectId }).select("_id attachments");
   const taskIds = tasks.map((task) => task._id);
+
+  await deleteTaskAttachments(tasks.flatMap((task) => task.attachments || []));
 
   await Promise.all([
     Subtask.deleteMany({ task: { $in: taskIds } }),

@@ -1,6 +1,4 @@
 import multer from "multer";
-import path from "path";
-import crypto from "crypto";
 import { ApiError } from "../utils/api-error.js";
 
 const allowedAttachmentMimeTypes = new Set([
@@ -11,20 +9,9 @@ const allowedAttachmentMimeTypes = new Set([
   "text/plain",
 ]);
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, `./public/images`);
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`,
-    );
-  },
-});
-
 export const upload = multer({
-  storage,
+  // Keep files in memory briefly so the controller can send them to private S3.
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 1 * 1000 * 1000,
   },

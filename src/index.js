@@ -12,6 +12,10 @@ if (process.env.NODE_ENV === "production") {
     "ACCESS_TOKEN_SECRET",
     "REFRESH_TOKEN_SECRET",
     "CORS_ORIGIN",
+    "AWS_REGION",
+    "AWS_S3_BUCKET",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
   ];
   const missingEnvironmentVariables = requiredEnvironmentVariables.filter(
     (name) => !process.env[name],
