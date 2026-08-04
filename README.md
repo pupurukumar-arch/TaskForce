@@ -48,6 +48,24 @@ npm run dev
 
 The server starts on `http://localhost:3000` unless `PORT` is changed. Check it with `GET /api/v1/healthcheck`.
 
+### Run the Orbit frontend
+
+In a second terminal, start the React frontend from the same repository:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Create `frontend/.env` locally with the public API address:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+Open `http://localhost:5173`. The root `.gitignore` keeps this local `.env` file out of Git.
+
 ## Configuration
 
 Create a local `.env` file and set the following values. Never commit `.env`. The example values below are intentionally non-secret.
