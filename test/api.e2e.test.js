@@ -398,3 +398,19 @@ test("a registered user can accept a valid invitation for their email", async ()
   });
   assert.equal(acceptedAgain.status, 400);
 });
+
+test("API rate limiting returns a JSON 429 response", async () => {
+  let limitedResponse;
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const response = await fetch(`${baseUrl}/healthcheck`);
+    if (response.status === 429) {
+      limitedResponse = await response.json();
+      break;
+    }
+  }
+
+  assert.ok(limitedResponse);
+  assert.equal(limitedResponse.statusCode, 429);
+  assert.equal(limitedResponse.success, false);
+});

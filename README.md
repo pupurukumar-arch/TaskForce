@@ -15,6 +15,7 @@ Most task-management demos stop at creating and updating tasks. TaskForce models
 - Existing-user membership and secure invitation flow for people who have not registered yet.
 - Personal deadline list and calendar views for assigned tasks.
 - Input validation, JSON error responses, permission checks, security headers, CORS configuration, and automated API tests.
+- Basic rate limiting: 100 API requests per IP address in each 15-minute window.
 
 ## Architecture
 
