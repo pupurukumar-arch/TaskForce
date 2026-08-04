@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { api } from '../lib/api'
 
@@ -73,7 +74,7 @@ export function ProjectSettingsPage({ user }) {
   const isAdmin = role === 'admin'
 
   return <AppLayout user={user}>
-    <a href={`/projects/${projectId}/tasks`} className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50">Back to project</a>
+    <Link to={`/projects/${projectId}/tasks`} className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50">Back to project</Link>
     <div className="mt-4">
       <h2 className="text-2xl font-bold text-slate-800">Project settings</h2>
       <p className="mt-1 text-sm text-slate-500">Manage the project name, description, and deletion settings.</p>

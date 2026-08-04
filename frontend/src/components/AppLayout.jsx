@@ -15,6 +15,9 @@ export function AppLayout({ user, children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNightTheme, setIsNightTheme] = useState(() => localStorage.getItem("orbit_theme") === "night");
   useEffect(() => {
+    document.body.classList.toggle("orbit-body-night", isNightTheme);
+  }, [isNightTheme]);
+  useEffect(() => {
     api("/notifications")
       .then((items) =>
         setUnreadCount(items.filter((item) => !item.isRead).length),
@@ -67,12 +70,12 @@ export function AppLayout({ user, children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto border-t border-white/10 px-2 pt-4"><button onClick={logout} className="w-full rounded-xl px-2 py-2 text-left text-sm font-medium text-slate-400 transition hover:bg-red-500/10 hover:text-red-200">Sign out</button></div>
+        <div className="mt-auto border-t border-white/10 px-2 pt-4"><p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Appearance</p><button type="button" onClick={toggleTheme} className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left text-sm font-medium text-slate-300 transition hover:bg-white/8 hover:text-white"><span className="orbit-theme-lens grid h-7 w-7 shrink-0 place-items-center rounded-full" /><span>{isNightTheme ? "Light theme" : "Midnight theme"}</span></button><button onClick={logout} className="mt-3 w-full rounded-xl px-2 py-2 text-left text-sm font-medium text-slate-400 transition hover:bg-red-500/10 hover:text-red-200">Sign out</button></div>
       </aside>
       <main className="min-w-0 flex-1 p-5 md:p-10">
         <header className="mx-auto mb-10 flex max-w-7xl items-center justify-between gap-4">
           <div><h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome back, <span className="font-semibold text-indigo-700">{user?.fullName || user?.username || "Orbit member"}</span></h1><p className="mt-1 text-sm text-slate-500">Here is what is happening across your projects.</p></div>
-          <div className="flex items-center gap-3"><button type="button" onClick={toggleTheme} aria-label={isNightTheme ? "Switch to light theme" : "Switch to midnight theme"} title={isNightTheme ? "Switch to light theme" : "Switch to midnight theme"} className="orbit-theme-lens grid h-10 w-10 place-items-center rounded-full border border-indigo-100 bg-white shadow-sm transition hover:-translate-y-0.5" /><Link to="/profile" className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-sm font-bold text-indigo-700 ring-4 ring-white transition hover:ring-indigo-100">{user?.username?.slice(0, 1).toUpperCase() || "U"}</Link></div>
+          <Link to="/profile" className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-sm font-bold text-indigo-700 ring-4 ring-white transition hover:ring-indigo-100">{user?.username?.slice(0, 1).toUpperCase() || "U"}</Link>
         </header>
         <div className="orbit-page-content mx-auto max-w-7xl">{children}</div>
       </main>

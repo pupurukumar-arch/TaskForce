@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
 
@@ -44,12 +45,12 @@ export function InviteMemberPage({ user, projectId = getProjectIdFromPath() }) {
 
   return (
     <AppLayout user={user}>
-      <a
-        href="/dashboard"
+      <Link
+        to={`/projects/${projectId}/tasks`}
         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
       >
-        ← Projects
-      </a>
+        ← Back to project board
+      </Link>
       <section className="mt-3 max-w-xl rounded-xl border border-indigo-100 bg-white p-6 shadow-sm">
         <p className="text-sm text-slate-500">Project team</p>
         <h2 className="mt-1 text-2xl font-bold text-slate-800">
