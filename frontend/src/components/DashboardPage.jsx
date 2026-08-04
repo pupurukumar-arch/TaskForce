@@ -9,19 +9,6 @@ const roleLabel = {
   member: "Member",
 };
 
-function StatCard({ label, value, accent, onClick, isSelected }) {
-  return (
-    <button onClick={onClick} className={`group w-full rounded-2xl border p-5 text-left shadow-sm shadow-slate-200/40 transition ${isSelected ? "border-indigo-300 bg-indigo-50/80 shadow-indigo-100/70" : "border-slate-200/80 bg-[#fffdf9] hover:border-indigo-200 hover:bg-indigo-50/50"}`}>
-      <div className="flex items-start justify-between gap-4">
-        <span className={`block h-2 w-10 rounded-full ${accent}`} />
-        <span className="text-xs font-medium text-slate-400 transition group-hover:text-indigo-600">View</span>
-      </div>
-      <p className="mt-5 text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
-    </button>
-  );
-}
-
 function ProjectCard({ project, role, onOpen }) {
   return (
     <article onDoubleClick={onOpen} title="Double-click to open project" className="group flex min-h-60 flex-col rounded-2xl border border-slate-200/80 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg hover:shadow-indigo-100/60">
@@ -61,20 +48,15 @@ function ProjectCard({ project, role, onOpen }) {
 export function DashboardPage({ user }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectForm, setProjectForm] = useState({ name: "", description: "" });
   const [creating, setCreating] = useState(false);
-  const [taskView, setTaskView] = useState("");
-  const [previewTasks, setPreviewTasks] = useState([]);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   useEffect(() => {
-    Promise.all([api("/projects"), api("/auth/task-summary")])
-      .then(([projectData, summaryData]) => {
+    api("/projects")
+      .then((projectData) => {
         setProjects(projectData);
-        setSummary(summaryData);
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -101,36 +83,13 @@ export function DashboardPage({ user }) {
     }
   };
 
-  const showMyTasks = async (view) => {
-    if (taskView === view) {
-      setTaskView("");
-      return;
-    }
-
-    setTaskView(view);
-    setIsLoadingPreview(true);
-    try {
-      const taskLists = await Promise.all(projects.map(async ({ project }) => ({
-        project,
-        tasks: await api(`/tasks/${project._id}`),
-      })));
-      const myTasks = taskLists.flatMap(({ project, tasks }) => tasks.filter((task) => task.assignedTo?._id === user._id).map((task) => ({ ...task, projectName: project.name, projectId: project._id })));
-      setPreviewTasks(view === "inProgress" ? myTasks.filter((task) => task.status === "in_progress") : myTasks);
-    } catch (requestError) {
-      setError(requestError.message);
-      setTaskView("");
-    } finally {
-      setIsLoadingPreview(false);
-    }
-  };
-
   return (
     <AppLayout user={user}>
       <section className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">Workspace overview</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Keep your work moving</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">See your projects, assigned tasks, and current work at a glance.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Choose a project to plan work, collaborate with your team, and track progress.</p>
         </div>
         <button onClick={() => setShowProjectForm(true)} className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:shadow-indigo-300">
           + New project
@@ -138,14 +97,6 @@ export function DashboardPage({ user }) {
       </section>
 
       {error && <p className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Assigned tasks" value={summary?.totalTasks ?? "—"} accent="bg-violet-500" onClick={() => showMyTasks("assigned")} isSelected={taskView === "assigned"} />
-        <StatCard label="In progress" value={summary?.inProgressTasks ?? "—"} accent="bg-blue-500" onClick={() => showMyTasks("inProgress")} isSelected={taskView === "inProgress"} />
-        <StatCard label="Active projects" value={projects.length} accent="bg-emerald-500" onClick={() => document.getElementById("your-projects")?.scrollIntoView({ behavior: "smooth", block: "start" })} />
-      </section>
-
-      {taskView && <section className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/35 p-5 shadow-sm shadow-slate-200/30"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-medium text-slate-500">Task focus</p><h3 className="mt-1 text-lg font-semibold text-slate-900">{taskView === "inProgress" ? "In-progress tasks" : "Assigned tasks"}</h3></div><button onClick={() => setTaskView("")} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">Close</button></div>{isLoadingPreview ? <p className="mt-5 text-sm text-slate-500">Loading tasks…</p> : <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{previewTasks.map((task) => <Link key={task._id} to={`/projects/${task.projectId}/tasks/${task._id}`} className="rounded-xl border border-slate-200/80 bg-[#fffdf9] p-4 transition hover:border-indigo-200 hover:bg-white"><p className="font-semibold text-slate-800">{task.title}</p><p className="mt-2 text-xs text-slate-500">{task.projectName} · {task.status.replace("_", " ")}</p></Link>)}{!previewTasks.length && <p className="col-span-full rounded-xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">No tasks in this view.</p>}</div>}</section>}
 
       <section id="your-projects" className="mt-10">
         <div className="mb-4 flex items-center justify-between">
@@ -157,7 +108,7 @@ export function DashboardPage({ user }) {
         </div>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {projects.map(({ project, role }) => <ProjectCard key={project._id} project={project} role={role} onOpen={() => navigate(`/projects/${project._id}/tasks`)} />)}
-          {!projects.length && <div className="col-span-full rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-10 text-center"><p className="text-lg font-semibold text-slate-800">Your workspace is ready.</p><p className="mt-2 text-sm text-slate-500">Create your first project to start assigning and reviewing work.</p><button onClick={() => setShowProjectForm(true)} className="mt-5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Create project</button></div>}
+          {!projects.length && <div className="col-span-full p-10 text-center"><p className="text-lg font-semibold text-slate-800">No projects yet.</p><button onClick={() => setShowProjectForm(true)} className="mt-5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Create project</button></div>}
         </div>
       </section>
 

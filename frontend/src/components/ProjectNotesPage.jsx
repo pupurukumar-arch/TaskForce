@@ -150,7 +150,7 @@ export function ProjectNotesPage({ user }) {
           <button onClick={() => deleteNote(note._id)} disabled={deletingNoteId === note._id} className="text-sm font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-60">{deletingNoteId === note._id ? 'Deleting…' : 'Delete'}</button>
         </div>}
       </article>)}
-      {!isLoading && !notes.length && <p className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-6 text-sm text-slate-600">No notes have been added yet.</p>}
+      {!isLoading && !notes.length && <p className="rounded-xl border border-slate-200 bg-[#fffdf9] p-6 text-sm text-slate-600 shadow-sm">No notes have been added yet.</p>}
     </section>
   </AppLayout>
 }

@@ -100,22 +100,25 @@ const getProjectProgress = asyncHandler(async (req, res) => {
   const summarize = (taskList) => ({
     totalTasks: taskList.length,
     completedTasks: taskList.filter((task) => task.status === "done").length,
+    inReviewTasks: taskList.filter((task) => task.status === "in_review").length,
     completedPercentage: taskList.length ? Math.round((taskList.filter((task) => task.status === "done").length / taskList.length) * 100) : 0,
     overdueTasks: taskList.filter(isOverdue).length,
   });
   tasks.forEach((task) => { statusCounts[task.status] += 1; });
 
   const isManager = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN].includes(req.user.role);
+  const isPersonalView = req.query.scope === "personal";
+  const showProjectOverview = isManager && !isPersonalView;
   const myTasks = tasks.filter((task) => task.assignedTo?.toString() === req.user._id.toString());
   const data = {
-    scope: isManager ? "project" : "personal",
-    summary: summarize(isManager ? tasks : myTasks),
-    statusCounts: isManager
+    scope: showProjectOverview ? "project" : "personal",
+    summary: summarize(showProjectOverview ? tasks : myTasks),
+    statusCounts: showProjectOverview
       ? statusCounts
       : myTasks.reduce((counts, task) => ({ ...counts, [task.status]: counts[task.status] + 1 }), { todo: 0, in_progress: 0, in_review: 0, done: 0 }),
   };
 
-  if (isManager) {
+  if (showProjectOverview) {
     const members = await ProjectMember.find({ project: req.params.projectId }).populate("user", "username fullName").lean();
     data.memberWorkload = members.map((member) => ({
       user: member.user,

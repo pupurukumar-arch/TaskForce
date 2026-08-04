@@ -46,10 +46,10 @@ export function InviteMemberPage({ user, projectId = getProjectIdFromPath() }) {
   return (
     <AppLayout user={user}>
       <Link
-        to={`/projects/${projectId}/tasks`}
+        to={`/projects/${projectId}/members`}
         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
       >
-        ← Back to project board
+        ← Back to members
       </Link>
       <section className="mt-3 max-w-xl rounded-xl border border-indigo-100 bg-white p-6 shadow-sm">
         <p className="text-sm text-slate-500">Project team</p>

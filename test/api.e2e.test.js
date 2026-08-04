@@ -235,6 +235,10 @@ test("task priority and due-date summary work", async () => {
   assert.equal(dueSummary.status, 200);
   assert.equal(dueSummary.body.data.counts.dueToday, 1);
 
+  const adminDueSummary = await request(`/tasks/${projectId}/due-summary`, { token: adminToken });
+  assert.equal(adminDueSummary.status, 200);
+  assert.equal(adminDueSummary.body.data.counts.dueToday, 0);
+
   const personalDeadlines = await request("/tasks/my-deadlines", { token: memberToken });
   assert.equal(personalDeadlines.status, 200);
   assert.equal(personalDeadlines.body.data.counts.dueToday, 1);
@@ -262,6 +266,12 @@ test("a member submits an assigned task and an admin approves it", async () => {
   assert.equal(submitForReview.status, 200);
   assert.equal(submitForReview.body.data.status, "in_review");
   assert.equal(submitForReview.body.data.submittedForReviewBy, member._id.toString());
+  const reviewNotification = await Notification.findOne({
+    recipient: admin._id,
+    task: taskId,
+    type: "task_submitted_for_review",
+  });
+  assert.ok(reviewNotification, "project admin should be notified when work is submitted");
 
   const approveTask = await request(`/tasks/${projectId}/t/${taskId}/review`, {
     method: "POST",
@@ -281,6 +291,11 @@ test("project progress is role-aware", async () => {
   assert.equal(managerProgress.body.data.summary.completedPercentage, 100);
   assert.equal(managerProgress.body.data.statusCounts.done, 1);
   assert.ok(managerProgress.body.data.memberWorkload.some((item) => item.user._id === member._id.toString()));
+
+  const managerPersonalProgress = await request(`/projects/${projectId}/progress?scope=personal`, { token: adminToken });
+  assert.equal(managerPersonalProgress.status, 200);
+  assert.equal(managerPersonalProgress.body.data.scope, "personal");
+  assert.equal(managerPersonalProgress.body.data.memberWorkload, undefined);
 
   const memberProgress = await request(`/projects/${projectId}/progress`, { token: memberToken });
   assert.equal(memberProgress.status, 200);

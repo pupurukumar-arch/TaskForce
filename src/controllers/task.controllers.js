@@ -20,7 +20,7 @@ const getTasks = asyncHandler(async (req, res) => {
     .populate("assignedTo", "avatar username fullName")
     .sort({ createdAt: -1 });
 
-  return res.status(200).json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
+  return res.status(200).json(new ApiResponse(200, await Promise.all(tasks.map(withAttachmentUrls)), "Tasks fetched successfully"));
 });
 
 const getTaskDueSummary = asyncHandler(async (req, res) => {
@@ -33,6 +33,7 @@ const getTaskDueSummary = asyncHandler(async (req, res) => {
 
   const openTaskFilter = {
     project: req.params.projectId,
+    assignedTo: req.user._id,
     dueDate: { $exists: true },
     status: { $ne: "done" },
   };
@@ -255,9 +256,20 @@ const submitTaskForReview = asyncHandler(async (req, res) => {
   await task.save();
 
   await recordActivity({ project: task.project, actor: req.user._id, type: "task_submitted_for_review", message: `Submitted task for review: ${task.title}`, details: { task: task._id } });
-  if (task.assignedBy && task.assignedBy.toString() !== req.user._id.toString()) {
-    await createNotification({ recipient: task.assignedBy, project: task.project, task: task._id, type: "task_submitted_for_review", message: `${req.user.username} submitted the task for review: ${task.title}` });
-  }
+  const managers = await ProjectMember.find({
+    project: task.project,
+    role: { $in: [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN] },
+    user: { $ne: req.user._id },
+  }).select("user");
+  await Promise.all(
+    managers.map((manager) => createNotification({
+      recipient: manager.user,
+      project: task.project,
+      task: task._id,
+      type: "task_submitted_for_review",
+      message: `${req.user.username} submitted the task for review: ${task.title}`,
+    })),
+  );
   return res.status(200).json(new ApiResponse(200, await withAttachmentUrls(task), "Task submitted for review"));
 });
 

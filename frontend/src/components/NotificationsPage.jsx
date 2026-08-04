@@ -85,7 +85,7 @@ export function NotificationsPage({ user }) {
           Loading notifications…
         </p>
       ) : notifications.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-10 text-center"><p className="text-lg font-semibold text-slate-800">You are all caught up.</p><p className="mt-2 text-sm text-slate-500">New task assignments, project invitations, and mentions will appear here.</p></div>
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-[#fffdf9] p-10 text-center shadow-sm shadow-slate-200/30"><p className="text-lg font-semibold text-slate-800">You are all caught up.</p><p className="mt-2 text-sm text-slate-500">New task assignments, project invitations, and mentions will appear here.</p></div>
       ) : (
         <div className="mt-8 space-y-3">
           {notifications.map((notification) => (
@@ -95,7 +95,7 @@ export function NotificationsPage({ user }) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className={`inline rounded-md px-1.5 py-1 font-medium leading-6 ${notification.isRead ? "" : "bg-amber-50 text-slate-800"}`}>{notification.message}</p>
+                  <p className={`inline rounded-md px-1.5 py-1 font-medium leading-6 ${notification.isRead ? "" : "bg-indigo-50 text-slate-800"}`}>{notification.message}</p>
                   <p className="mt-1.5 text-xs text-slate-500">
                     {formatDate(notification.createdAt)}
                   </p>
