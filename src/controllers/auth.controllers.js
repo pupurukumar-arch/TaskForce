@@ -37,7 +37,7 @@ const refreshTokenCookieOptions = {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, username, password, role } = req.body;
+  const { email, username, password, fullName } = req.body;
 
   const existedUser = await User.findOne({
     $or: [{ username }, { email }],
@@ -51,6 +51,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     username,
+    fullName,
     isEmailVerified: false,
   });
 
@@ -100,13 +101,13 @@ const login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new ApiError(400, "User does not exists");
+    throw new ApiError(401, "Invalid credentials");
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
-    throw new ApiError(400, "Invalid credentials");
+    throw new ApiError(401, "Invalid credentials");
   }
 
   if (!user.isEmailVerified) {
@@ -304,7 +305,9 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new ApiError(404, "User does not exists", []);
+    return res.status(200).json(
+      new ApiResponse(200, {}, "If an account exists, a password reset email has been sent"),
+    );
   }
 
   const { unHashedToken, hashedToken, tokenExpiry } =
@@ -330,7 +333,7 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {},
-        "Password reset mail has been sent on your mail id",
+        "If an account exists, a password reset email has been sent",
       ),
     );
 });
@@ -349,7 +352,7 @@ const resetForgotPassword = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new ApiError(489, "Token is invalid or expired");
+    throw new ApiError(400, "Token is invalid or expired");
   }
 
   user.forgotPasswordExpiry = undefined;

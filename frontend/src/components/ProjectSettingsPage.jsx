@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { api } from '../lib/api'
 
 export function ProjectSettingsPage({ user }) {
-  const projectId = window.location.pathname.split('/')[2]
+  const { projectId } = useParams()
   const [form, setForm] = useState({ name: '', description: '' })
   const [role, setRole] = useState('')
   const [isLoading, setIsLoading] = useState(true)

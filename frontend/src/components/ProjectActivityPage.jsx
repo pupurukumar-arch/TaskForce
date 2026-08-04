@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
-
-const getProjectIdFromPath = () => window.location.pathname.split("/")[2];
 
 const formatActivityDate = (date) => {
   if (!date) return "Just now";
@@ -14,10 +12,8 @@ const formatActivityDate = (date) => {
   }).format(new Date(date));
 };
 
-export function ProjectActivityPage({
-  user,
-  projectId = getProjectIdFromPath(),
-}) {
+export function ProjectActivityPage({ user }) {
+  const { projectId } = useParams();
   const [activities, setActivities] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);

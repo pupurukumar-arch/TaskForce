@@ -3,6 +3,9 @@ import nodemailer from "nodemailer";
 import { ApiError } from "./api-error.js";
 
 const sendEmail = async (options) => {
+  // Browser/API tests must never send a real or Mailtrap email.
+  if (process.env.NODE_ENV === "test") return;
+
   const mailGenerator = new Mailgen({
     theme: "default",
     product: {

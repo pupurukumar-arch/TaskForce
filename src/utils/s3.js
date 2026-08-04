@@ -32,6 +32,7 @@ const getS3Client = () => new S3Client({
 });
 
 const bucket = () => process.env.AWS_S3_BUCKET;
+const isTestEnvironment = process.env.NODE_ENV === "test";
 
 const toStorageError = (error) => {
   if (error instanceof ApiError) return error;
@@ -39,6 +40,14 @@ const toStorageError = (error) => {
 };
 
 export const uploadTaskAttachment = async (file) => {
+  if (isTestEnvironment) {
+    return {
+      key: `test-attachments/${crypto.randomUUID()}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    };
+  }
+
   ensureS3Settings();
   const extension = path.extname(file.originalname || "").toLowerCase();
   const key = `task-attachments/${crypto.randomUUID()}${extension}`;
@@ -61,6 +70,8 @@ export const uploadTaskAttachments = (files = []) =>
   Promise.all(files.map(uploadTaskAttachment));
 
 export const getAttachmentUrl = async (key) => {
+  if (isTestEnvironment) return `https://example.test/attachments/${encodeURIComponent(key)}`;
+
   ensureS3Settings();
   try {
     return await getSignedUrl(
@@ -85,6 +96,8 @@ export const withAttachmentUrls = async (task) => {
 };
 
 export const deleteTaskAttachments = async (attachments = []) => {
+  if (isTestEnvironment) return;
+
   const objects = attachments
     .filter((attachment) => attachment.key)
     .map((attachment) => ({ Key: attachment.key }));

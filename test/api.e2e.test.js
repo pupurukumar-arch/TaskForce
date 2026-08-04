@@ -157,6 +157,41 @@ test("unverified users cannot log in", async () => {
   assert.match(response.body.message, /verify your email/i);
 });
 
+test("authentication does not reveal whether an account exists", async () => {
+  const unknownEmail = `${suffix}_unknown@example.com`;
+  const loginResponse = await request("/auth/login", {
+    method: "POST",
+    body: { email: unknownEmail, password: "TestPassword123!" },
+  });
+  assert.equal(loginResponse.status, 401);
+  assert.equal(loginResponse.body.message, "Invalid credentials");
+
+  const forgotPasswordResponse = await request("/auth/forgot-password", {
+    method: "POST",
+    body: { email: unknownEmail },
+  });
+  assert.equal(forgotPasswordResponse.status, 200);
+  assert.match(forgotPasswordResponse.body.message, /if an account exists/i);
+});
+
+test("authentication validators require an eight-character password", async () => {
+  const registrationResponse = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: `${suffix}_short_password@example.com`,
+      username: `${suffix}short`,
+      password: "short",
+    },
+  });
+  assert.equal(registrationResponse.status, 422);
+
+  const resetResponse = await request(`/auth/reset-password/${"a".repeat(64)}`, {
+    method: "POST",
+    body: { newPassword: "short" },
+  });
+  assert.equal(resetResponse.status, 422);
+});
+
 test("project admin can create a project and add a member", async () => {
   const createProject = await request("/projects", {
     method: "POST",

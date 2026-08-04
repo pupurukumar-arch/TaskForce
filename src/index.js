@@ -30,8 +30,16 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const port = process.env.PORT || 3000;
+const databaseUri = process.env.NODE_ENV === "test"
+  ? process.env.TEST_MONGO_URI
+  : process.env.MONGO_URI;
 
-connectDB()
+if (!databaseUri) {
+  console.error("Missing database connection string");
+  process.exit(1);
+}
+
+connectDB(databaseUri)
   .then(() => {
     app.listen(port, () => {
       console.log(`Example app listening on port http://localhost:${port}`);

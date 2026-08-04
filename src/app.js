@@ -23,7 +23,6 @@ app.use((req, res, next) => {
 // basic configurations
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
-app.use(express.static("public"));
 app.use(cookieParser());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, { customSiteTitle: "TaskForce API Docs" }));
 
