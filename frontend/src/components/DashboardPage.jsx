@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
 
@@ -22,9 +22,9 @@ function StatCard({ label, value, accent, onClick, isSelected }) {
   );
 }
 
-function ProjectCard({ project, role }) {
+function ProjectCard({ project, role, onOpen }) {
   return (
-    <article className="group flex min-h-60 flex-col rounded-2xl border border-slate-200/80 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg hover:shadow-indigo-100/60">
+    <article onDoubleClick={onOpen} title="Double-click to open project" className="group flex min-h-60 flex-col rounded-2xl border border-slate-200/80 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg hover:shadow-indigo-100/60">
       <div className="flex items-start justify-between gap-4">
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm shadow-indigo-200">
           {project.name?.slice(0, 1).toUpperCase() || "P"}
@@ -59,6 +59,7 @@ function ProjectCard({ project, role }) {
 }
 
 export function DashboardPage({ user }) {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
@@ -129,7 +130,7 @@ export function DashboardPage({ user }) {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">Workspace overview</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Keep your work moving</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">A calm view of your projects, assigned work, and what needs attention next.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">See your projects, assigned tasks, and current work at a glance.</p>
         </div>
         <button onClick={() => setShowProjectForm(true)} className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:shadow-indigo-300">
           + New project
@@ -155,7 +156,7 @@ export function DashboardPage({ user }) {
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">{projects.length} total</span>
         </div>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map(({ project, role }) => <ProjectCard key={project._id} project={project} role={role} />)}
+          {projects.map(({ project, role }) => <ProjectCard key={project._id} project={project} role={role} onOpen={() => navigate(`/projects/${project._id}/tasks`)} />)}
           {!projects.length && <div className="col-span-full rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-10 text-center"><p className="text-lg font-semibold text-slate-800">Your workspace is ready.</p><p className="mt-2 text-sm text-slate-500">Create your first project to start assigning and reviewing work.</p><button onClick={() => setShowProjectForm(true)} className="mt-5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Create project</button></div>}
         </div>
       </section>

@@ -52,10 +52,10 @@ export function ProjectActivityPage({
   return (
     <AppLayout user={user}>
       <a
-        href="/dashboard"
+        href={`/projects/${projectId}/tasks`}
         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
       >
-        ← Projects
+        ← Back to project board
       </a>
       <div className="mt-3">
         <p className="text-sm text-slate-500">Project history</p>
