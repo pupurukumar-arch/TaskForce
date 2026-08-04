@@ -8,7 +8,7 @@ Most task-management demos stop at creating and updating tasks. TaskForce models
 
 ## Key features
 
-- JWT authentication with email verification, password reset, refresh tokens, and password change.
+- JWT authentication with email verification, password reset, short-lived access tokens, HTTP-only refresh-token cookies, and password change.
 - Clear project-level roles: **Admin**, **Project Admin**, and **Member**.
 - Projects, task assignment, priority, difficulty, due dates, deadlines, subtasks, comments, notes, attachments, and activity history.
 - A simple review workflow: assigned members submit work; Admins and Project Admins approve or return it.

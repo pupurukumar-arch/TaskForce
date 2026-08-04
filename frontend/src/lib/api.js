@@ -1,15 +1,9 @@
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
-const accessTokenKey = 'taskforce_access_token'
-const refreshTokenKey = 'taskforce_refresh_token'
+let accessToken = ''
 
-export const getToken = () => localStorage.getItem(accessTokenKey)
-export const setToken = (token) => localStorage.setItem(accessTokenKey, token)
-const getRefreshToken = () => localStorage.getItem(refreshTokenKey)
-const setRefreshToken = (token) => localStorage.setItem(refreshTokenKey, token)
-export const clearToken = () => {
-  localStorage.removeItem(accessTokenKey)
-  localStorage.removeItem(refreshTokenKey)
-}
+export const getToken = () => accessToken
+export const setToken = (token) => { accessToken = token || '' }
+export const clearToken = () => { accessToken = '' }
 
 const parseResponse = async (response) => {
   const contentType = response.headers.get('content-type') || ''
@@ -33,18 +27,15 @@ const request = (path, options, token) => {
 
 const storeTokens = (data) => {
   if (data?.accessToken) setToken(data.accessToken)
-  if (data?.refreshToken) setRefreshToken(data.refreshToken)
 }
 
 export async function api(path, options = {}) {
   let response = await request(path, options, getToken())
   let result = await parseResponse(response)
 
-  const refreshToken = getRefreshToken()
-  if (response.status === 401 && path !== '/auth/refresh-token' && refreshToken) {
+  if (response.status === 401 && path !== '/auth/refresh-token') {
     const refreshResponse = await request('/auth/refresh-token', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken }),
     })
     const refreshResult = await parseResponse(refreshResponse)
 
