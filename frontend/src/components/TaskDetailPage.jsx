@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { TaskActions } from './TaskActions'
 import { TaskAttachments } from './TaskAttachments'
@@ -175,7 +176,7 @@ export function TaskDetailPage({ user }) {
   }
 
   return <AppLayout user={user}>
-    <a href={`/projects/${projectId}/tasks`} className="text-sm text-indigo-600">← Back to tasks</a>
+    <Link to={`/projects/${projectId}/tasks`} className="text-sm text-indigo-600">← Back to tasks</Link>
     <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
       <section className="rounded-2xl border border-slate-200 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40">
         <div className="flex justify-between gap-4">

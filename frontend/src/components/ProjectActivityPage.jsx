@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
 
@@ -51,12 +52,12 @@ export function ProjectActivityPage({
 
   return (
     <AppLayout user={user}>
-      <a
-        href={`/projects/${projectId}/tasks`}
+      <Link
+        to={`/projects/${projectId}/tasks`}
         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
       >
         ← Back to project board
-      </a>
+      </Link>
       <div className="mt-3">
         <p className="text-sm text-slate-500">Project history</p>
         <h2 className="text-2xl font-bold text-slate-800">Activity</h2>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { api } from '../lib/api'
 
@@ -96,7 +97,7 @@ export function ProjectNotesPage({ user }) {
   return <AppLayout user={user}>
     <div className="flex items-end justify-between gap-4">
       <div>
-        <a href={`/projects/${projectId}/tasks`} className="text-sm text-indigo-600">← Back to project</a>
+        <Link to={`/projects/${projectId}/tasks`} className="text-sm text-indigo-600">← Back to project</Link>
         <h2 className="mt-2 text-2xl font-bold text-slate-800">Project notes</h2>
         <p className="mt-1 text-sm text-slate-500">Shared notes for everyone in this project.</p>
       </div>
