@@ -273,6 +273,22 @@ test("a member submits an assigned task and an admin approves it", async () => {
   assert.equal(approveTask.body.data.approvedBy, admin._id.toString());
 });
 
+test("project progress is role-aware", async () => {
+  const managerProgress = await request(`/projects/${projectId}/progress`, { token: adminToken });
+  assert.equal(managerProgress.status, 200);
+  assert.equal(managerProgress.body.data.scope, "project");
+  assert.equal(managerProgress.body.data.summary.totalTasks, 1);
+  assert.equal(managerProgress.body.data.summary.completedPercentage, 100);
+  assert.equal(managerProgress.body.data.statusCounts.done, 1);
+  assert.ok(managerProgress.body.data.memberWorkload.some((item) => item.user._id === member._id.toString()));
+
+  const memberProgress = await request(`/projects/${projectId}/progress`, { token: memberToken });
+  assert.equal(memberProgress.status, 200);
+  assert.equal(memberProgress.body.data.scope, "personal");
+  assert.equal(memberProgress.body.data.summary.totalTasks, 1);
+  assert.equal(memberProgress.body.data.memberWorkload, undefined);
+});
+
 test("comments, activity, and notifications are stored for the right users", async () => {
   const notifications = await request("/notifications", { token: memberToken });
   assert.equal(notifications.status, 200);

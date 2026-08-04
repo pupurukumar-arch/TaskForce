@@ -5,6 +5,7 @@ import {
   createProject,
   deleteMember,
   getProjects,
+  getProjectProgress,
   getProjectById,
   getProjectMembers,
   getMemberTaskSummary,
@@ -37,6 +38,10 @@ router
 router
   .route("/invitations/:invitationToken/accept")
   .post(acceptProjectInvitation);
+
+router
+  .route("/:projectId/progress")
+  .get(validateProjectPermission(AvailableUserRole), getProjectProgress);
 
 router
   .route("/:projectId")

@@ -99,6 +99,9 @@ const openapiSpecification = {
       get: authenticated("List project members", { parameters: [{ $ref: "#/components/parameters/projectId" }] }),
       post: authenticated("Add registered member (Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MemberRequest" } } } } }),
     },
+    "/projects/{projectId}/progress": {
+      get: authenticated("Get role-aware project progress and workload", { parameters: [{ $ref: "#/components/parameters/projectId" }] }),
+    },
     "/projects/{projectId}/invitations": {
       post: authenticated("Invite an unregistered user (Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MemberRequest" } } } } }),
     },
