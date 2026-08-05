@@ -85,5 +85,10 @@ button, input, select, textarea { font: inherit; }
 .orbit-app:not(.orbit-theme-night) .orbit-page-content > a:first-child:hover { border-color: #dfcdd9; background: #fff3f8; }
 .orbit-app:not(.orbit-theme-night) .orbit-page-content > section[class~="max-w-2xl"] > article { border-color: #eadfe8; background: #fffafd; box-shadow: 0 1px 2px rgb(111 73 103 / 6%); }
 .orbit-page-content aside > form::before { content: "New subtask"; display: block; margin-bottom: 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.orbit-task-detail { background: linear-gradient(145deg, #ffffff 0%, #f7fbff 100%); border-color: #cfe0f5; box-shadow: 0 1rem 2.5rem rgb(37 99 235 / 10%); }
+.orbit-task-modal { background: rgb(15 23 42 / 52%); backdrop-filter: blur(0.35rem); }
+.orbit-task-modal__card { background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%) !important; border: 1px solid #cfe0f5; color: #172033; }
+.orbit-app.orbit-theme-night .orbit-task-detail { background: #141c34; border-color: #2b385b; box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 30%); }
+.orbit-app.orbit-theme-night .orbit-task-modal__card { background: #141c34 !important; border-color: #2b385b; color: #eef3ff; }
 @keyframes planet-orbit { 0% { transform: translate(0.78rem, -0.31rem); } 25% { transform: translate(-0.12rem, -0.29rem); } 50% { transform: translate(-0.78rem, 0.31rem); } 75% { transform: translate(0.12rem, 0.29rem); } 100% { transform: translate(0.78rem, -0.31rem); } }
 @media (prefers-reduced-motion: reduce) { .orbit-mark__planet { animation: none; } }

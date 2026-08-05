@@ -9,7 +9,9 @@ import {
   getProjectById,
   getProjectMembers,
   getMemberTaskSummary,
+  sendMemberTaskReminder,
   updateProject,
+  uploadProjectBriefFile,
   deleteProject,
   updateMemberRole,
   inviteUnregisteredMember,
@@ -27,6 +29,7 @@ import {
 } from "../middlewares/auth.middleware.js";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 import { validateObjectIdParam } from "../middlewares/security.middleware.js";
+import { projectBriefUpload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 router.param("projectId", validateObjectIdParam);
@@ -36,7 +39,7 @@ router.use(verifyJWT);
 router
   .route("/")
   .get(getProjects)
-  .post(createProjectValidator(), validate, createProject);
+  .post(projectBriefUpload.single("brief"), createProjectValidator(), validate, createProject);
 
 router
   .route("/invitations/:invitationToken/accept")
@@ -45,6 +48,14 @@ router
 router
   .route("/:projectId/progress")
   .get(validateProjectPermission(AvailableUserRole), getProjectProgress);
+
+router
+  .route("/:projectId/brief")
+  .put(
+    validateProjectPermission([UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN]),
+    projectBriefUpload.single("brief"),
+    uploadProjectBriefFile,
+  );
 
 router
   .route("/:projectId")
@@ -78,7 +89,17 @@ router
 
 router
   .route("/:projectId/members/:userId/task-summary")
-  .get(validateProjectPermission([UserRolesEnum.ADMIN]), getMemberTaskSummary);
+  .get(
+    validateProjectPermission([UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN]),
+    getMemberTaskSummary,
+  );
+
+router
+  .route("/:projectId/members/:userId/tasks/:taskId/reminder")
+  .post(
+    validateProjectPermission([UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN]),
+    sendMemberTaskReminder,
+  );
 
 router
   .route("/:projectId/activity")

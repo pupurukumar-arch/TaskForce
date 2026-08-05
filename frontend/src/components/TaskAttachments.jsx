@@ -1,13 +1,21 @@
 const MAX_ATTACHMENTS = 5;
+const MAX_FILE_SIZE = 1 * 1000 * 1000;
 
 const formatFileSize = (size) => {
   if (size < 1000 * 1000) return `${Math.ceil(size / 1000)} KB`;
   return `${(size / (1000 * 1000)).toFixed(1)} MB`;
 };
 
-export function TaskAttachments({ files = [], onChange, disabled = false }) {
+export function TaskAttachments({ files = [], onChange, onError, disabled = false }) {
   const selectFiles = (event) => {
     const selectedFiles = Array.from(event.target.files || []);
+    if (selectedFiles.some((file) => file.size > MAX_FILE_SIZE)) {
+      onChange([]);
+      onError?.("Each attachment must be 1 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+    onError?.("");
     onChange(selectedFiles.slice(0, MAX_ATTACHMENTS));
   };
 

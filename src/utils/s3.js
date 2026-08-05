@@ -66,6 +66,11 @@ export const uploadTaskAttachment = async (file) => {
   return { key, mimetype: file.mimetype, size: file.size };
 };
 
+export const uploadProjectBrief = async (file) => {
+  const attachment = await uploadTaskAttachment(file);
+  return { ...attachment, name: file.originalname };
+};
+
 export const uploadTaskAttachments = (files = []) =>
   Promise.all(files.map(uploadTaskAttachment));
 

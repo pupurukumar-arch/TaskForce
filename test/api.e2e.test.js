@@ -162,6 +162,30 @@ test("unverified users cannot log in", async () => {
   assert.match(response.body.message, /verify your email/i);
 });
 
+test("unverified users can register again and receive a fresh verification token", async () => {
+  const originalId = unverifiedUser._id;
+  const originalPassword = unverifiedUser.password;
+
+  const response = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: unverifiedUser.email,
+      username: `${suffix}_unverified_retry`,
+      password: "ReplacementPassword123!",
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.match(response.body.message, /verification email has been resent/i);
+
+  const retriedUser = await User.findById(originalId);
+  assert.equal(retriedUser.isEmailVerified, false);
+  assert.equal(retriedUser.username, `${suffix}_unverified_retry`);
+  assert.notEqual(retriedUser.password, originalPassword);
+  assert.ok(retriedUser.emailVerificationToken);
+  assert.ok(retriedUser.emailVerificationExpiry > new Date());
+});
+
 test("authentication does not reveal whether an account exists", async () => {
   const unknownEmail = `${suffix}_unknown@example.com`;
   const loginResponse = await request("/auth/login", {
@@ -358,6 +382,17 @@ test("a member submits an assigned task and an admin approves it", async () => {
     reviewNotification,
     "project admin should be notified when work is submitted",
   );
+
+  const cannotMoveReviewTaskToTodo = await request(
+    `/tasks/${projectId}/t/${taskId}`,
+    {
+      method: "PUT",
+      token: adminToken,
+      body: { status: "todo" },
+    },
+  );
+  assert.equal(cannotMoveReviewTaskToTodo.status, 400);
+  assert.match(cannotMoveReviewTaskToTodo.body.message, /under review/i);
 
   const approveTask = await request(`/tasks/${projectId}/t/${taskId}/review`, {
     method: "POST",

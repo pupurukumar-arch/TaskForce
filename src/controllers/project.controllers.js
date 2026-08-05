@@ -2,7 +2,7 @@ import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
-import { deleteTaskAttachments } from "../utils/s3.js";
+import { deleteTaskAttachments, getAttachmentUrl, uploadProjectBrief } from "../utils/s3.js";
 import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
 import { TaskComment } from "../models/taskcomment.models.js";
@@ -14,7 +14,6 @@ import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
-import { getTaskSummaryForUser } from "../utils/task-summary.js";
 import { recordActivity } from "../utils/activity.js";
 import { createNotification } from "../utils/notification.js";
 import { projectInvitationMailgenContent, sendEmail } from "../utils/mail.js";
@@ -84,9 +83,11 @@ const getProjectById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project not found");
   }
 
+  const data = project.toObject();
+  if (data.brief?.key) data.brief.url = await getAttachmentUrl(data.brief.key);
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Project fetched successfully"));
+    .json(new ApiResponse(200, data, "Project fetched successfully"));
 });
 
 const getProjectProgress = asyncHandler(async (req, res) => {
@@ -133,10 +134,12 @@ const getProjectProgress = asyncHandler(async (req, res) => {
 const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
+  const brief = req.file ? await uploadProjectBrief(req.file) : undefined;
   const project = await Project.create({
     name,
     description,
     createdBy: new mongoose.Types.ObjectId(req.user._id),
+    brief,
   });
 
   await ProjectMember.create({
@@ -164,8 +167,8 @@ const updateProject = asyncHandler(async (req, res) => {
   const project = await Project.findByIdAndUpdate(
     projectId,
     {
-      name,
-      description,
+      ...(name !== undefined && { name }),
+      ...(description !== undefined && { description }),
     },
     { new: true },
   );
@@ -176,6 +179,17 @@ const updateProject = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project updated successfully"));
+});
+
+const uploadProjectBriefFile = asyncHandler(async (req, res) => {
+  if (!req.file) throw new ApiError(400, "Choose a Project Brief file first");
+  const project = await Project.findById(req.params.projectId);
+  if (!project) throw new ApiError(404, "Project not found");
+  const previousBrief = project.brief;
+  project.brief = await uploadProjectBrief(req.file);
+  await project.save();
+  if (previousBrief?.key) await deleteTaskAttachments([previousBrief]);
+  return res.status(200).json(new ApiResponse(200, project, "Project Brief uploaded"));
 });
 
 const deleteProject = asyncHandler(async (req, res) => {
@@ -218,9 +232,16 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exists");
   }
 
-  const project = await Project.findById(projectId).select("name");
+  const project = await Project.findById(projectId).select("name createdBy");
   if (!project) {
     throw new ApiError(404, "Project not found");
+  }
+
+  if (
+    project.createdBy.toString() === user._id.toString() &&
+    role !== UserRolesEnum.ADMIN
+  ) {
+    throw new ApiError(409, "The project creator must remain an Admin; a project must have at least one Admin");
   }
 
   const existingMembership = await ProjectMember.exists({
@@ -431,15 +452,57 @@ const getMemberTaskSummary = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project member not found");
   }
 
-  const summary = await getTaskSummaryForUser(projectMember.user._id);
+  const tasks = await Task.find({
+    project: req.params.projectId,
+    assignedTo: projectMember.user._id,
+  })
+    .select("title description status dueDate priority difficulty")
+    .sort({ dueDate: 1, createdAt: -1 })
+    .lean();
+  const statuses = ["todo", "in_progress", "in_review", "done"];
+  const tasksByStatus = Object.fromEntries(
+    statuses.map((status) => [
+      status,
+      tasks.filter((task) => task.status === status),
+    ]),
+  );
 
   return res.status(200).json(
     new ApiResponse(
       200,
-      { member: projectMember.user, ...summary },
+      {
+        member: projectMember.user,
+        totalTasks: tasks.length,
+        tasksByStatus,
+      },
       "Member task summary fetched successfully",
     ),
   );
+});
+
+const sendMemberTaskReminder = asyncHandler(async (req, res) => {
+  const task = await Task.findOne({
+    _id: req.params.taskId,
+    project: req.params.projectId,
+    assignedTo: req.params.userId,
+    status: { $in: ["todo", "in_progress"] },
+  });
+
+  if (!task) {
+    throw new ApiError(404, "An open task for this member was not found");
+  }
+
+  await createNotification({
+    recipient: task.assignedTo,
+    project: task.project,
+    task: task._id,
+    type: "task_reminder",
+    message: `Reminder from your project admin: ${task.title}`,
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, "Reminder sent to the member"));
 });
 
 const updateMemberRole = asyncHandler(async (req, res) => {
@@ -457,6 +520,14 @@ const updateMemberRole = asyncHandler(async (req, res) => {
 
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
+  }
+
+  const project = await Project.findById(projectId).select("createdBy");
+  if (
+    project?.createdBy.toString() === userId &&
+    newRole !== UserRolesEnum.ADMIN
+  ) {
+    throw new ApiError(409, "The project creator must remain an Admin; a project must have at least one Admin");
   }
 
   if (
@@ -569,7 +640,9 @@ export {
   getProjectById,
   getProjectMembers,
   getMemberTaskSummary,
+  sendMemberTaskReminder,
   updateProject,
+  uploadProjectBriefFile,
   deleteProject,
   updateMemberRole,
 };

@@ -28,3 +28,14 @@ export const upload = multer({
     return cb(null, true);
   },
 });
+
+export const projectBriefUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1000 * 1000 },
+  fileFilter: (_req, file, cb) => {
+    if (!new Set(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]).has(file.mimetype)) {
+      return cb(new ApiError(400, "Project Brief must be a PDF or DOCX file"));
+    }
+    return cb(null, true);
+  },
+});

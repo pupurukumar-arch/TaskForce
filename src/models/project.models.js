@@ -11,6 +11,12 @@ const projectSchema = new Schema(
     description: {
       type: String,
     },
+    brief: {
+      key: String,
+      mimetype: String,
+      size: Number,
+      name: String,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
