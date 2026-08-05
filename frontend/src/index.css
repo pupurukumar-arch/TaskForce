@@ -7,27 +7,31 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: #f8fafc; color: #172033; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; min-width: 320px; background: #fff7fa; color: #172033; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 body.orbit-body-night { background: #0b1020; color: #dbe7ff; }
 button, input, select, textarea { font: inherit; }
 
 .orbit-app { transition: background 260ms ease, color 260ms ease; }
-.orbit-app:not(.orbit-theme-night) { background: radial-gradient(circle at 88% -8%, rgb(167 139 250 / 47%) 0, transparent 31rem), radial-gradient(circle at 5% 93%, rgb(125 211 252 / 48%) 0, transparent 33rem), #edf3ff; }
-.orbit-app:not(.orbit-theme-night) main { background-color: transparent; }
+.orbit-app:not(.orbit-theme-night) { background: radial-gradient(circle at 88% -8%, rgb(248 210 229 / 52%) 0, transparent 31rem), radial-gradient(circle at 5% 93%, rgb(226 220 255 / 48%) 0, transparent 33rem), #fff7fa; }
+.orbit-app:not(.orbit-theme-night) main { background: transparent; }
 .orbit-app:not(.orbit-theme-night) .bg-\[\#fffdf9\],
+.orbit-app:not(.orbit-theme-night) .bg-\[\#fffaf0\],
 .orbit-app:not(.orbit-theme-night) .bg-white,
 .orbit-app:not(.orbit-theme-night) .bg-white\/70,
-.orbit-app:not(.orbit-theme-night) .bg-white\/80 { background-color: rgb(255 255 255 / 88%) !important; }
+.orbit-app:not(.orbit-theme-night) .bg-white\/80 { background-color: rgb(255 251 253 / 92%) !important; }
+.orbit-app:not(.orbit-theme-night) .bg-slate-50,
+.orbit-app:not(.orbit-theme-night) .bg-slate-50\/70,
+.orbit-app:not(.orbit-theme-night) .bg-slate-50\/30 { background-color: rgb(255 247 251 / 88%) !important; }
 .orbit-app:not(.orbit-theme-night) .border-slate-100,
 .orbit-app:not(.orbit-theme-night) .border-slate-200,
 .orbit-app:not(.orbit-theme-night) .border-slate-200\/80,
-.orbit-app:not(.orbit-theme-night) .border-indigo-100 { border-color: #dce5f7 !important; }
-.orbit-app:not(.orbit-theme-night) .shadow-sm { box-shadow: 0 0.8rem 2rem rgb(71 85 105 / 10%) !important; }
+.orbit-app:not(.orbit-theme-night) .border-indigo-100 { border-color: #eadfe8 !important; }
+.orbit-app:not(.orbit-theme-night) .shadow-sm { box-shadow: 0 0.8rem 2rem rgb(111 73 103 / 9%) !important; }
 .orbit-app:not(.orbit-theme-night) article,
 .orbit-app:not(.orbit-theme-night) section.rounded-2xl { backdrop-filter: blur(0.75rem); }
 .orbit-app:not(.orbit-theme-night) input,
 .orbit-app:not(.orbit-theme-night) select,
-.orbit-app:not(.orbit-theme-night) textarea { background-color: #f8faff; }
+.orbit-app:not(.orbit-theme-night) textarea { background-color: #fff8fb; }
 
 .orbit-theme-lens { position: relative; overflow: hidden; background: radial-gradient(circle at 35% 32%, #c4b5fd 0 14%, #6366f1 15% 43%, #312e81 44% 100%); box-shadow: inset -0.25rem -0.25rem 0.5rem rgb(15 23 42 / 28%), 0 0.5rem 1rem rgb(79 70 229 / 15%); }
 .orbit-theme-lens::after { content: ""; position: absolute; right: -0.13rem; top: -0.13rem; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: rgb(255 255 255 / 78%); transition: transform 220ms ease, background 220ms ease; }
@@ -77,6 +81,9 @@ button, input, select, textarea { font: inherit; }
 .orbit-page-content > section[class~="max-w-2xl"] > article > div:last-child { flex-direction: column; align-items: flex-end; gap: 0.5rem; }
 .orbit-page-content > section[class~="max-w-2xl"] > article > div:last-child > button { border: 1px solid #fecdd3; border-radius: 0.5rem; background: #fff1f2; padding: 0.375rem 0.625rem; font-size: 0.75rem; font-weight: 600; color: #be123c; transition: background 160ms ease; }
 .orbit-page-content > section[class~="max-w-2xl"] > article > div:last-child > button:hover { background: #ffe4e6; }
+.orbit-app:not(.orbit-theme-night) .orbit-page-content > a:first-child { border-color: #eadfe8; background: #fffafd; }
+.orbit-app:not(.orbit-theme-night) .orbit-page-content > a:first-child:hover { border-color: #dfcdd9; background: #fff3f8; }
+.orbit-app:not(.orbit-theme-night) .orbit-page-content > section[class~="max-w-2xl"] > article { border-color: #eadfe8; background: #fffafd; box-shadow: 0 1px 2px rgb(111 73 103 / 6%); }
 .orbit-page-content aside > form::before { content: "New subtask"; display: block; margin-bottom: 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 @keyframes planet-orbit { 0% { transform: translate(0.78rem, -0.31rem); } 25% { transform: translate(-0.12rem, -0.29rem); } 50% { transform: translate(-0.78rem, 0.31rem); } 75% { transform: translate(0.12rem, 0.29rem); } 100% { transform: translate(0.78rem, -0.31rem); } }
 @media (prefers-reduced-motion: reduce) { .orbit-mark__planet { animation: none; } }
