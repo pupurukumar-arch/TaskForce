@@ -1,5 +1,6 @@
 import { defineConfig } from "@playwright/test";
 import dotenv from "dotenv";
+import { assertSeparateTestDatabase } from "./src/db/index.js";
 
 dotenv.config({ path: ".env", quiet: true });
 
@@ -8,6 +9,8 @@ const testMongoUri = process.env.TEST_MONGO_URI;
 if (!testMongoUri) {
   throw new Error("TEST_MONGO_URI is required for browser tests.");
 }
+
+assertSeparateTestDatabase(testMongoUri, process.env.MONGO_URI);
 
 export default defineConfig({
   testDir: "./test/browser",
@@ -26,7 +29,6 @@ export default defineConfig({
       env: {
         ...process.env,
         NODE_ENV: "test",
-        MONGO_URI: testMongoUri,
         TEST_MONGO_URI: testMongoUri,
         PORT: "3100",
         CORS_ORIGIN: "http://127.0.0.1:5174",

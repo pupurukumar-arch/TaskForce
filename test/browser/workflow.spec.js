@@ -8,6 +8,7 @@ import { ProjectMember } from "../../src/models/projectmember.models.js";
 import { Task } from "../../src/models/task.models.js";
 import { Notification } from "../../src/models/notification.models.js";
 import { Activity } from "../../src/models/activity.models.js";
+import { assertSeparateTestDatabase } from "../../src/db/index.js";
 
 dotenv.config({ path: ".env", quiet: true });
 
@@ -22,8 +23,7 @@ let projectId;
 let taskId;
 
 test.beforeAll(async () => {
-  if (!process.env.TEST_MONGO_URI) throw new Error("TEST_MONGO_URI is required for browser tests.");
-  if (process.env.TEST_MONGO_URI === process.env.MONGO_URI) throw new Error("Browser tests must use TEST_MONGO_URI, never MONGO_URI.");
+  assertSeparateTestDatabase(process.env.TEST_MONGO_URI, process.env.MONGO_URI);
 
   await mongoose.connect(process.env.TEST_MONGO_URI);
 });
@@ -31,7 +31,13 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const taskFilter = taskId ? { _id: taskId } : { project: projectId };
   await Promise.all([
-    Notification.deleteMany({ $or: [{ recipient: { $in: [adminId, memberId].filter(Boolean) } }, { project: projectId }, { task: taskId }] }),
+    Notification.deleteMany({
+      $or: [
+        { recipient: { $in: [adminId, memberId].filter(Boolean) } },
+        { project: projectId },
+        { task: taskId },
+      ],
+    }),
     Activity.deleteMany({ project: projectId }),
     Task.deleteMany(taskFilter),
     ProjectMember.deleteMany({ project: projectId }),
@@ -41,7 +47,9 @@ test.afterAll(async () => {
   await mongoose.disconnect();
 });
 
-test("registered user can verify, create work, attach evidence, submit it, and approve it", async ({ page }) => {
+test("registered user can verify, create work, attach evidence, submit it, and approve it", async ({
+  page,
+}) => {
   await page.goto("/register");
   await page.getByLabel(/full name/i).fill("Browser Admin");
   await page.getByLabel(/^username/i).fill(`${suffix}admin`);
@@ -50,13 +58,18 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText(/account created/i)).toBeVisible();
 
-  await expect.poll(async () => User.exists({ email: adminEmail })).not.toBeNull();
+  await expect
+    .poll(async () => User.exists({ email: adminEmail }))
+    .not.toBeNull();
   const admin = await User.findOne({ email: adminEmail }).lean();
   adminId = admin._id;
   await User.updateOne(
     { _id: adminId },
     {
-      emailVerificationToken: crypto.createHash("sha256").update(verificationToken).digest("hex"),
+      emailVerificationToken: crypto
+        .createHash("sha256")
+        .update(verificationToken)
+        .digest("hex"),
       emailVerificationExpiry: new Date(Date.now() + 10 * 60 * 1000),
     },
   );
@@ -66,12 +79,16 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   );
 
   await page.goto(`/verify-email/${verificationToken}`);
-  await expect(page.getByRole("heading", { name: "Email verified" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Email verified" }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Go to sign in" }).click();
   await page.getByLabel(/^email/i).fill(adminEmail);
   await page.getByLabel(/^password/i).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: /keep your work moving/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /keep your work moving/i }),
+  ).toBeVisible();
 
   const member = await User.create({
     email: memberEmail,
@@ -84,10 +101,14 @@ test("registered user can verify, create work, attach evidence, submit it, and a
 
   await page.getByRole("button", { name: "+ New project" }).click();
   await page.getByLabel(/project name/i).fill("Browser workflow project");
-  await page.getByLabel(/description/i).fill("A browser-tested project workflow.");
+  await page
+    .getByLabel(/description/i)
+    .fill("A browser-tested project workflow.");
   await page.getByRole("button", { name: "Create project" }).last().click();
   await expect(page.getByText("Browser workflow project")).toBeVisible();
-  projectId = (await Project.findOne({ name: "Browser workflow project" }).lean())._id;
+  projectId = (
+    await Project.findOne({ name: "Browser workflow project" }).lean()
+  )._id;
 
   await page.getByRole("link", { name: "Open project" }).click();
   await page.getByRole("link", { name: "Members" }).click();
@@ -111,11 +132,19 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   await page.getByRole("link", { name: "Open project" }).click();
   await page.getByRole("button", { name: "To do" }).click();
   await page.getByRole("link", { name: "Browser workflow task" }).click();
-  await page.getByLabel(/attachments/i).setInputFiles({ name: "evidence.txt", mimeType: "text/plain", buffer: Buffer.from("Completed in browser test.") });
+  await page
+    .getByLabel(/attachments/i)
+    .setInputFiles({
+      name: "evidence.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Completed in browser test."),
+    });
   await expect(page.getByText("evidence.txt")).toBeVisible();
   await page.getByRole("button", { name: "Mark ready for review" }).click();
   await expect(page.getByText("in review", { exact: true })).toBeVisible();
-  await expect.poll(async () => (await Task.findById(taskId).lean()).attachments.length).toBe(1);
+  await expect
+    .poll(async () => (await Task.findById(taskId).lean()).attachments.length)
+    .toBe(1);
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.getByLabel(/^email/i).fill(adminEmail);
@@ -124,5 +153,7 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   await page.getByRole("link", { name: "Open project" }).click();
   await page.getByRole("button", { name: "In review" }).click();
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect.poll(async () => (await Task.findById(taskId).lean()).status).toBe("done");
+  await expect
+    .poll(async () => (await Task.findById(taskId).lean()).status)
+    .toBe("done");
 });
