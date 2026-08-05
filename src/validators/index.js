@@ -14,6 +14,8 @@ const userRegisterValidator = () => {
       .isEmail()
       .withMessage("Email is invalid"),
     body("username")
+      .isString()
+      .withMessage("Username must be text")
       .trim()
       .notEmpty()
       .withMessage("Username is required")
@@ -22,23 +24,35 @@ const userRegisterValidator = () => {
       .isLength({ min: 3 })
       .withMessage("Username must be at least 3 characters long"),
     body("password")
+      .isString()
+      .withMessage("Password must be text")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long"),
-    body("fullName").optional().trim(),
+    body("fullName").optional().isString().trim(),
   ];
 };
 
 const userLoginValidator = () => {
   return [
     body("email").optional().isEmail().withMessage("Email is invalid"),
-    body("password").notEmpty().withMessage("Password is required"),
+    body("password")
+      .isString()
+      .withMessage("Password must be text")
+      .notEmpty()
+      .withMessage("Password is required"),
   ];
 };
 
 const userChangeCurrentPasswordValidator = () => {
   return [
-    body("oldPassword").notEmpty().withMessage("Old password is required"),
+    body("oldPassword")
+      .isString()
+      .withMessage("Old password must be text")
+      .notEmpty()
+      .withMessage("Old password is required"),
     body("newPassword")
+      .isString()
+      .withMessage("New password must be text")
       .isLength({ min: 8 })
       .withMessage("New password must be at least 8 characters long"),
   ];
@@ -57,6 +71,8 @@ const userForgotPasswordValidator = () => {
 const userResetForgotPasswordValidator = () => {
   return [
     body("newPassword")
+      .isString()
+      .withMessage("Password must be text")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long"),
   ];
@@ -77,8 +93,13 @@ const userSkillsValidator = () => {
 
 const createProjectValidator = () => {
   return [
-    body("name").notEmpty().withMessage("Name is required"),
-    body("description").optional(),
+    body("name")
+      .isString()
+      .withMessage("Name must be text")
+      .trim()
+      .notEmpty()
+      .withMessage("Name is required"),
+    body("description").optional().isString().trim(),
   ];
 };
 
@@ -112,13 +133,20 @@ const updateMemberRoleValidator = () => {
 const taskFieldsValidator = (titleRequired) => [
   titleRequired
     ? body("title").trim().notEmpty().withMessage("Task title is required")
-    : body("title").optional().trim().notEmpty().withMessage("Task title cannot be empty"),
+    : body("title")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("Task title cannot be empty"),
   body("description").optional().isString().trim(),
   body("assignedTo")
     .optional()
     .custom((value) => value === "" || /^[a-fA-F0-9]{24}$/.test(value))
     .withMessage("Assignee must be a valid user id"),
-  body("status").optional().isIn(AvailableTaskStatues).withMessage("Task status is invalid"),
+  body("status")
+    .optional()
+    .isIn(AvailableTaskStatues)
+    .withMessage("Task status is invalid"),
   body("difficulty")
     .optional()
     .isIn(AvailableTaskDifficulties)
@@ -127,7 +155,10 @@ const taskFieldsValidator = (titleRequired) => [
     .optional()
     .isIn(AvailableTaskPriorities)
     .withMessage("Task priority is invalid"),
-  body("dueDate").optional({ checkFalsy: true }).isISO8601().withMessage("Due date is invalid"),
+  body("dueDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("Due date is invalid"),
 ];
 
 const createTaskValidator = () => taskFieldsValidator(true);
@@ -146,8 +177,15 @@ const createSubtaskValidator = () => [
 ];
 
 const updateSubtaskValidator = () => [
-  body("title").optional().trim().notEmpty().withMessage("Subtask title cannot be empty"),
-  body("isCompleted").optional().isBoolean().withMessage("isCompleted must be true or false"),
+  body("title")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Subtask title cannot be empty"),
+  body("isCompleted")
+    .optional()
+    .isBoolean()
+    .withMessage("isCompleted must be true or false"),
 ];
 
 export {

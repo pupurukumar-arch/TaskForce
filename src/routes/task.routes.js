@@ -19,7 +19,10 @@ import {
   deleteTaskComment,
   getTaskComments,
 } from "../controllers/task-comment.controllers.js";
-import { verifyJWT, validateProjectPermission } from "../middlewares/auth.middleware.js";
+import {
+  verifyJWT,
+  validateProjectPermission,
+} from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -30,9 +33,14 @@ import {
   updateSubtaskValidator,
   updateTaskValidator,
 } from "../validators/index.js";
+import { validateObjectIdParam } from "../middlewares/security.middleware.js";
 
 const router = Router();
 const managers = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN];
+
+for (const parameter of ["projectId", "taskId", "commentId", "subTaskId"]) {
+  router.param(parameter, validateObjectIdParam);
+}
 
 router.use(verifyJWT);
 

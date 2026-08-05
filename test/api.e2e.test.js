@@ -144,6 +144,15 @@ test("health check is public", async () => {
   assert.equal(response.status, 200);
 });
 
+test("state-changing browser requests reject untrusted origins", async () => {
+  const response = await fetch(`${baseUrl}/auth/refresh-token`, {
+    method: "POST",
+    headers: { Origin: "https://untrusted.example" },
+  });
+
+  assert.equal(response.status, 403);
+});
+
 test("unverified users cannot log in", async () => {
   const response = await request("/auth/login", {
     method: "POST",
@@ -418,6 +427,18 @@ test("comments, activity, and notifications are stored for the right users", asy
 });
 
 test("invalid task, comment, note, subtask, and role inputs are rejected", async () => {
+  const invalidProjectId = await request("/projects/not-an-object-id", {
+    token: adminToken,
+  });
+  assert.equal(invalidProjectId.status, 400);
+
+  const operatorProjectName = await request("/projects", {
+    method: "POST",
+    token: adminToken,
+    body: { name: { $ne: null } },
+  });
+  assert.equal(operatorProjectName.status, 422);
+
   const blankTask = await request(`/tasks/${projectId}`, {
     method: "POST",
     token: adminToken,
