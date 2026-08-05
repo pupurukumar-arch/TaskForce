@@ -200,6 +200,28 @@ test("authentication validators require an eight-character password", async () =
   assert.equal(resetResponse.status, 422);
 });
 
+test("failed verification delivery rolls back a new registration", async () => {
+  const email = `${suffix}_delivery_failure@example.com`;
+  process.env.TEST_EMAIL_BEHAVIOR = "fail";
+
+  try {
+    const response = await request("/auth/register", {
+      method: "POST",
+      body: {
+        email,
+        username: `${suffix}deliveryfailure`,
+        password: "TestPassword123!",
+      },
+    });
+
+    assert.equal(response.status, 502);
+    assert.equal(await User.exists({ email }), null);
+  } finally {
+    delete process.env.TEST_EMAIL_BEHAVIOR;
+    await User.deleteMany({ email });
+  }
+});
+
 test("project admin can create a project and add a member", async () => {
   const createProject = await request("/projects", {
     method: "POST",

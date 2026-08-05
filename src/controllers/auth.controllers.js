@@ -63,14 +63,26 @@ const registerUser = asyncHandler(async (req, res) => {
 
   await user.save({ validateBeforeSave: false });
 
-  await sendEmail({
-    email: user?.email,
-    subject: "Please verify your email",
-    mailgenContent: emailVerificationMailgenContent(
-      user.username,
-      `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
-    ),
-  });
+  try {
+    await sendEmail({
+      email: user?.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.username,
+        `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
+      ),
+    });
+  } catch (error) {
+    try {
+      await User.deleteOne({ _id: user._id, isEmailVerified: false });
+    } catch (cleanupError) {
+      console.error("Failed to roll back an undeliverable registration", {
+        userId: user._id.toString(),
+        code: cleanupError?.code,
+      });
+    }
+    throw error;
+  }
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
