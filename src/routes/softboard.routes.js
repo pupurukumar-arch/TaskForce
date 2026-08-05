@@ -1,0 +1,2 @@
+import { Router } from "express"; import { verifyJWT } from "../middlewares/auth.middleware.js"; import { createNote, deleteNote, getNotes, updateNote } from "../controllers/softboard.controllers.js"; import { validateObjectIdParam } from "../middlewares/security.middleware.js";
+const router=Router(); router.param("noteId",validateObjectIdParam); router.use(verifyJWT); router.route("/").get(getNotes).post(createNote); router.route("/:noteId").put(updateNote).delete(deleteNote); export default router;

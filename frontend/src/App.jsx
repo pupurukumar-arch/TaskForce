@@ -19,6 +19,7 @@ import { TaskBoardPage } from './components/TaskBoardPage'
 import { ProfilePage } from './components/ProfilePage'
 import { DeadlinesPage } from './components/DeadlinesPage'
 import { CalendarPage } from './components/CalendarPage'
+import { SoftboardPage } from './components/SoftboardPage'
 import { ProjectBriefPage } from './components/ProjectBriefPage'
 import { api, setToken } from './lib/api'
 
@@ -40,6 +41,7 @@ function ProtectedApp() {
     <Route path="/dashboard" element={<DashboardPage user={user} />} />
     <Route path="/deadlines" element={<DeadlinesPage user={user} />} />
     <Route path="/calendar" element={<CalendarPage user={user} />} />
+    <Route path="/softboard" element={<SoftboardPage user={user} />} />
     <Route path="/change-password" element={<ChangePasswordPage user={user} />} />
     <Route path="/projects/invitations/:invitationToken/accept" element={<InvitationAcceptancePage user={user} />} />
     <Route path="/projects/:projectId/members" element={<ProjectMembersPage user={user} />} />
