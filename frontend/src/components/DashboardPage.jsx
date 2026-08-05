@@ -13,7 +13,7 @@ function ProjectCard({ project, role, onOpen }) {
   return (
     <article onDoubleClick={onOpen} title="Double-click to open project" className="group flex min-h-60 flex-col rounded-2xl border border-slate-200/80 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg hover:shadow-indigo-100/60">
       <div className="flex items-start justify-between gap-4">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm shadow-indigo-200">
+        <div className="grid h-10 w-10 place-items-center rounded-xl border border-indigo-200 bg-indigo-100 text-sm font-bold text-indigo-700 shadow-sm shadow-indigo-100">
           {project.name?.slice(0, 1).toUpperCase() || "P"}
         </div>
         <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">

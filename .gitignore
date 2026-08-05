@@ -1,2 +1,14 @@
 node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
 .env
+.env.*
+!.env.example
+!frontend/.env.example
+
+.DS_Store
+**/.DS_Store
+playwright-report/
+test-results/

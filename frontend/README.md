@@ -24,7 +24,7 @@ The UI hides controls that do not apply to a role, but the Express API is the fi
 
 ## Run locally
 
-Requirements: Node.js 20+, MongoDB, and the TaskForce API running on port 3000.
+Requirements: Node.js 20.19+ (Node.js 22 LTS recommended), MongoDB, and the TaskForce API running on port 3000.
 
 ```bash
 npm install
@@ -77,7 +77,7 @@ npm test        # small role/review unit tests
 
 ## Deployment notes
 
-Deploy the frontend to Vercel or Netlify and set `VITE_API_BASE_URL` to the deployed backend URL. Deploy the Express API separately (for example, Railway or Render), then update its `CORS_ORIGIN` to the frontend URL. For real email delivery, replace the Mailtrap Sandbox setup with a verified sending domain and production SMTP/API credentials.
+Build the frontend with `VITE_API_BASE_URL` set to the deployed backend URL. Deploy the Express API separately, then set its `CORS_ORIGIN`, password-reset URL, and invitation URL to the final HTTPS frontend origin. For real email delivery, replace the Mailtrap Sandbox setup with a verified sending domain and production SMTP/API credentials.
 
 ## Current verification
 

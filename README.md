@@ -37,7 +37,7 @@ Task attachments are stored in a private Amazon S3 bucket. MongoDB stores the fi
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js 20.19 or later (Node.js 22 LTS is recommended and pinned in `.nvmrc`)
 - MongoDB (Atlas or local)
 - SMTP credentials for verification and password-reset emails (Mailtrap is suitable for local development)
 
@@ -45,7 +45,8 @@ Task attachments are stored in a private Amazon S3 bucket. MongoDB stores the fi
 
 ```bash
 npm ci
-# Create a local .env file with the variables shown below.
+cp .env.example .env
+# Replace every placeholder in .env with your local credentials.
 npm run dev
 ```
 
@@ -61,10 +62,10 @@ npm ci
 npm run dev
 ```
 
-Create `frontend/.env` locally with the public API address:
+Create `frontend/.env` from the committed safe example:
 
-```env
-VITE_API_BASE_URL=http://localhost:3000/api/v1
+```bash
+cp frontend/.env.example frontend/.env
 ```
 
 Open `http://localhost:5173`. The root `.gitignore` keeps this local `.env` file out of Git.
@@ -90,7 +91,7 @@ Create a local `.env` file and set the following values. Never commit `.env`. Th
 | `MAILTRAP_SMTP_PASS` | SMTP password |
 | `TEST_MONGO_URI` | A separate database used only by `npm test` |
 
-Use different database names for `MONGO_URI` and `TEST_MONGO_URI`. This prevents automated test data from ever touching real development data.
+Use explicit, different database names for `MONGO_URI` and `TEST_MONGO_URI`, such as `taskforce_dev` and `taskforce_test`. The application and tests compare the resolved host and database names and stop before connecting if the test database points at development data.
 
 ## Application flow
 
@@ -289,9 +290,17 @@ npm test
 
 The tests create temporary users and project data only in that test database, verify key API and permission flows, then remove that exact temporary data. They cover login verification, role restrictions, tasks, priorities, due-date summaries, comments, notifications, and activity history.
 
+Run the complete pre-deployment check with:
+
+```bash
+npm run check
+```
+
+This runs the backend suite, frontend lint and unit tests, a production frontend build, and the Playwright browser workflow. Test mode disables outbound email and replaces S3 operations with deterministic local metadata, so automated checks do not send email, upload files, or create AWS charges.
+
 ## Security note
 
-Do not publish `.env`, MongoDB URIs, SMTP credentials, JWT secrets, or real tokens. `.gitignore` excludes `.env` and `node_modules`.
+Do not publish `.env`, MongoDB URIs, SMTP credentials, JWT secrets, AWS credentials, or real tokens. `.gitignore` excludes local environment files, dependencies, build output, test artifacts, and operating-system metadata. Commit only the placeholder `.env.example` files.
 
 ## Placement demo checklist
 
@@ -302,6 +311,24 @@ Do not publish `.env`, MongoDB URIs, SMTP credentials, JWT secrets, or real toke
 5. As a manager, approve the task and show the activity and notification created by that decision.
 6. Open the Deadline and Calendar screens to explain personal planning.
 7. Run `npm test` and explain that the test database is isolated from real data.
+
+### Interview talking points
+
+- The frontend improves usability, while the API remains the final authorization boundary.
+- Access tokens are short-lived; refresh tokens use HTTP-only cookies and are rotated.
+- Project membership and role checks prevent ID-based access to another team's work.
+- Attachments use a private S3 bucket and short-lived signed download URLs.
+- Separate development and test databases prevent automated cleanup from touching demo data.
+- API, permission, and full browser-workflow tests validate the main placement-demo story.
+
+## Pre-deployment checklist
+
+- Set every backend variable from `.env.example` in the hosting provider's secret manager.
+- Set `VITE_API_BASE_URL` while building the frontend.
+- Set `CORS_ORIGIN`, password-reset URL, and invitation URL to the final HTTPS frontend origin.
+- Keep the existing S3 bucket private and grant only the minimum object permissions.
+- Run `npm run check`, then verify registration email delivery and one real attachment manually after deployment.
+- Use separate demo accounts for Admin, Project Admin, and Member; never publish personal email addresses or credentials.
 
 ## Screenshots
 

@@ -26,8 +26,11 @@ import {
   validateProjectPermission,
 } from "../middlewares/auth.middleware.js";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import { validateObjectIdParam } from "../middlewares/security.middleware.js";
 
 const router = Router();
+router.param("projectId", validateObjectIdParam);
+router.param("userId", validateObjectIdParam);
 router.use(verifyJWT);
 
 router
@@ -75,10 +78,7 @@ router
 
 router
   .route("/:projectId/members/:userId/task-summary")
-  .get(
-    validateProjectPermission([UserRolesEnum.ADMIN]),
-    getMemberTaskSummary,
-  );
+  .get(validateProjectPermission([UserRolesEnum.ADMIN]), getMemberTaskSummary);
 
 router
   .route("/:projectId/activity")

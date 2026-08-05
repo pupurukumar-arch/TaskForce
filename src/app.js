@@ -5,6 +5,7 @@ import swaggerUi from "swagger-ui-express";
 import { ApiError } from "./utils/api-error.js";
 import { openapiSpecification } from "./docs/openapi.js";
 import { apiRateLimiter } from "./middlewares/rate-limit.middleware.js";
+import { enforceTrustedOrigin } from "./middlewares/security.middleware.js";
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
@@ -24,7 +25,14 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpecification, { customSiteTitle: "TaskForce API Docs" }));
+app.use(enforceTrustedOrigin(allowedOrigins));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openapiSpecification, {
+    customSiteTitle: "TaskForce API Docs",
+  }),
+);
 
 // cors configurations
 app.use(

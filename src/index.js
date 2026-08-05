@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import app from "./app.js";
-import connectDB from "./db/index.js";
+import connectDB, { assertSeparateTestDatabase } from "./db/index.js";
 
 dotenv.config({
   path: "./.env",
@@ -10,8 +10,16 @@ if (process.env.NODE_ENV === "production") {
   const requiredEnvironmentVariables = [
     "MONGO_URI",
     "ACCESS_TOKEN_SECRET",
+    "ACCESS_TOKEN_EXPIRY",
     "REFRESH_TOKEN_SECRET",
+    "REFRESH_TOKEN_EXPIRY",
     "CORS_ORIGIN",
+    "FORGOT_PASSWORD_REDIRECT_URL",
+    "PROJECT_INVITE_REDIRECT_URL",
+    "MAILTRAP_SMTP_HOST",
+    "MAILTRAP_SMTP_PORT",
+    "MAILTRAP_SMTP_USER",
+    "MAILTRAP_SMTP_PASS",
     "AWS_REGION",
     "AWS_S3_BUCKET",
     "AWS_ACCESS_KEY_ID",
@@ -30,9 +38,14 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const port = process.env.PORT || 3000;
-const databaseUri = process.env.NODE_ENV === "test"
-  ? process.env.TEST_MONGO_URI
-  : process.env.MONGO_URI;
+const databaseUri =
+  process.env.NODE_ENV === "test"
+    ? process.env.TEST_MONGO_URI
+    : process.env.MONGO_URI;
+
+if (process.env.NODE_ENV === "test") {
+  assertSeparateTestDatabase(process.env.TEST_MONGO_URI, process.env.MONGO_URI);
+}
 
 if (!databaseUri) {
   console.error("Missing database connection string");

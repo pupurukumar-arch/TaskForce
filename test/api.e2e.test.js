@@ -13,6 +13,7 @@ import { Activity } from "../src/models/activity.models.js";
 import { Subtask } from "../src/models/subtask.models.js";
 import { ProjectNote } from "../src/models/note.models.js";
 import { ProjectInvite } from "../src/models/projectinvite.models.js";
+import { assertSeparateTestDatabase } from "../src/db/index.js";
 import crypto from "crypto";
 
 dotenv.config({ path: ".env" });
@@ -51,12 +52,7 @@ const request = async (path, { method = "GET", token, body } = {}) => {
 };
 
 before(async () => {
-  if (!testDatabaseUri) {
-    throw new Error("TEST_MONGO_URI is required. Use a separate test database, not MONGO_URI.");
-  }
-  if (testDatabaseUri === process.env.MONGO_URI) {
-    throw new Error("TEST_MONGO_URI must be different from MONGO_URI to protect your main data.");
-  }
+  assertSeparateTestDatabase(testDatabaseUri, process.env.MONGO_URI);
 
   await mongoose.connect(testDatabaseUri);
   server = app.listen(0);
@@ -148,6 +144,15 @@ test("health check is public", async () => {
   assert.equal(response.status, 200);
 });
 
+test("state-changing browser requests reject untrusted origins", async () => {
+  const response = await fetch(`${baseUrl}/auth/refresh-token`, {
+    method: "POST",
+    headers: { Origin: "https://untrusted.example" },
+  });
+
+  assert.equal(response.status, 403);
+});
+
 test("unverified users cannot log in", async () => {
   const response = await request("/auth/login", {
     method: "POST",
@@ -185,10 +190,13 @@ test("authentication validators require an eight-character password", async () =
   });
   assert.equal(registrationResponse.status, 422);
 
-  const resetResponse = await request(`/auth/reset-password/${"a".repeat(64)}`, {
-    method: "POST",
-    body: { newPassword: "short" },
-  });
+  const resetResponse = await request(
+    `/auth/reset-password/${"a".repeat(64)}`,
+    {
+      method: "POST",
+      body: { newPassword: "short" },
+    },
+  );
   assert.equal(resetResponse.status, 422);
 });
 
@@ -210,18 +218,24 @@ test("project admin can create a project and add a member", async () => {
 });
 
 test("the last project Admin cannot be demoted or removed", async () => {
-  const demoteLastAdmin = await request(`/projects/${projectId}/members/${admin._id}`, {
-    method: "PUT",
-    token: adminToken,
-    body: { newRole: "member" },
-  });
+  const demoteLastAdmin = await request(
+    `/projects/${projectId}/members/${admin._id}`,
+    {
+      method: "PUT",
+      token: adminToken,
+      body: { newRole: "member" },
+    },
+  );
   assert.equal(demoteLastAdmin.status, 409);
   assert.match(demoteLastAdmin.body.message, /at least one Admin/i);
 
-  const removeLastAdmin = await request(`/projects/${projectId}/members/${admin._id}`, {
-    method: "DELETE",
-    token: adminToken,
-  });
+  const removeLastAdmin = await request(
+    `/projects/${projectId}/members/${admin._id}`,
+    {
+      method: "DELETE",
+      token: adminToken,
+    },
+  );
   assert.equal(removeLastAdmin.status, 409);
 
   const adminMembership = await ProjectMember.findOne({
@@ -266,20 +280,29 @@ test("task priority and due-date summary work", async () => {
   assert.equal(createTask.body.data.priority, "high");
   taskId = createTask.body.data._id;
 
-  const dueSummary = await request(`/tasks/${projectId}/due-summary`, { token: memberToken });
+  const dueSummary = await request(`/tasks/${projectId}/due-summary`, {
+    token: memberToken,
+  });
   assert.equal(dueSummary.status, 200);
   assert.equal(dueSummary.body.data.counts.dueToday, 1);
 
-  const adminDueSummary = await request(`/tasks/${projectId}/due-summary`, { token: adminToken });
+  const adminDueSummary = await request(`/tasks/${projectId}/due-summary`, {
+    token: adminToken,
+  });
   assert.equal(adminDueSummary.status, 200);
   assert.equal(adminDueSummary.body.data.counts.dueToday, 0);
 
-  const personalDeadlines = await request("/tasks/my-deadlines", { token: memberToken });
+  const personalDeadlines = await request("/tasks/my-deadlines", {
+    token: memberToken,
+  });
   assert.equal(personalDeadlines.status, 200);
   assert.equal(personalDeadlines.body.data.counts.dueToday, 1);
   assert.equal(personalDeadlines.body.data.dueToday[0].project.name, suffix);
 
-  const personalCalendar = await request(`/tasks/my-calendar?month=${dueDate.toISOString().slice(0, 7)}`, { token: memberToken });
+  const personalCalendar = await request(
+    `/tasks/my-calendar?month=${dueDate.toISOString().slice(0, 7)}`,
+    { token: memberToken },
+  );
   assert.equal(personalCalendar.status, 200);
   assert.equal(personalCalendar.body.data.tasks.length, 1);
   assert.equal(personalCalendar.body.data.tasks[0].title, "Priority task");
@@ -300,13 +323,19 @@ test("a member submits an assigned task and an admin approves it", async () => {
   );
   assert.equal(submitForReview.status, 200);
   assert.equal(submitForReview.body.data.status, "in_review");
-  assert.equal(submitForReview.body.data.submittedForReviewBy, member._id.toString());
+  assert.equal(
+    submitForReview.body.data.submittedForReviewBy,
+    member._id.toString(),
+  );
   const reviewNotification = await Notification.findOne({
     recipient: admin._id,
     task: taskId,
     type: "task_submitted_for_review",
   });
-  assert.ok(reviewNotification, "project admin should be notified when work is submitted");
+  assert.ok(
+    reviewNotification,
+    "project admin should be notified when work is submitted",
+  );
 
   const approveTask = await request(`/tasks/${projectId}/t/${taskId}/review`, {
     method: "POST",
@@ -319,20 +348,31 @@ test("a member submits an assigned task and an admin approves it", async () => {
 });
 
 test("project progress is role-aware", async () => {
-  const managerProgress = await request(`/projects/${projectId}/progress`, { token: adminToken });
+  const managerProgress = await request(`/projects/${projectId}/progress`, {
+    token: adminToken,
+  });
   assert.equal(managerProgress.status, 200);
   assert.equal(managerProgress.body.data.scope, "project");
   assert.equal(managerProgress.body.data.summary.totalTasks, 1);
   assert.equal(managerProgress.body.data.summary.completedPercentage, 100);
   assert.equal(managerProgress.body.data.statusCounts.done, 1);
-  assert.ok(managerProgress.body.data.memberWorkload.some((item) => item.user._id === member._id.toString()));
+  assert.ok(
+    managerProgress.body.data.memberWorkload.some(
+      (item) => item.user._id === member._id.toString(),
+    ),
+  );
 
-  const managerPersonalProgress = await request(`/projects/${projectId}/progress?scope=personal`, { token: adminToken });
+  const managerPersonalProgress = await request(
+    `/projects/${projectId}/progress?scope=personal`,
+    { token: adminToken },
+  );
   assert.equal(managerPersonalProgress.status, 200);
   assert.equal(managerPersonalProgress.body.data.scope, "personal");
   assert.equal(managerPersonalProgress.body.data.memberWorkload, undefined);
 
-  const memberProgress = await request(`/projects/${projectId}/progress`, { token: memberToken });
+  const memberProgress = await request(`/projects/${projectId}/progress`, {
+    token: memberToken,
+  });
   assert.equal(memberProgress.status, 200);
   assert.equal(memberProgress.body.data.scope, "personal");
   assert.equal(memberProgress.body.data.summary.totalTasks, 1);
@@ -342,8 +382,14 @@ test("project progress is role-aware", async () => {
 test("comments, activity, and notifications are stored for the right users", async () => {
   const notifications = await request("/notifications", { token: memberToken });
   assert.equal(notifications.status, 200);
-  assert.ok(notifications.body.data.some((item) => item.type === "project_member_added"));
-  assert.ok(notifications.body.data.some((item) => item.type === "task_assigned"));
+  assert.ok(
+    notifications.body.data.some(
+      (item) => item.type === "project_member_added",
+    ),
+  );
+  assert.ok(
+    notifications.body.data.some((item) => item.type === "task_assigned"),
+  );
 
   const comment = await request(`/tasks/${projectId}/t/${taskId}/comments`, {
     method: "POST",
@@ -352,8 +398,12 @@ test("comments, activity, and notifications are stored for the right users", asy
   });
   assert.equal(comment.status, 201);
 
-  const adminNotifications = await request("/notifications", { token: adminToken });
-  const mention = adminNotifications.body.data.find((item) => item.type === "comment_mention");
+  const adminNotifications = await request("/notifications", {
+    token: adminToken,
+  });
+  const mention = adminNotifications.body.data.find(
+    (item) => item.type === "comment_mention",
+  );
   assert.ok(mention);
 
   const markRead = await request(`/notifications/${mention._id}/read`, {
@@ -369,12 +419,26 @@ test("comments, activity, and notifications are stored for the right users", asy
   });
   assert.equal(forbiddenRead.status, 404);
 
-  const activity = await request(`/projects/${projectId}/activity`, { token: memberToken });
+  const activity = await request(`/projects/${projectId}/activity`, {
+    token: memberToken,
+  });
   assert.equal(activity.status, 200);
   assert.ok(activity.body.data.some((item) => item.type === "task_created"));
 });
 
 test("invalid task, comment, note, subtask, and role inputs are rejected", async () => {
+  const invalidProjectId = await request("/projects/not-an-object-id", {
+    token: adminToken,
+  });
+  assert.equal(invalidProjectId.status, 400);
+
+  const operatorProjectName = await request("/projects", {
+    method: "POST",
+    token: adminToken,
+    body: { name: { $ne: null } },
+  });
+  assert.equal(operatorProjectName.status, 422);
+
   const blankTask = await request(`/tasks/${projectId}`, {
     method: "POST",
     token: adminToken,
@@ -389,11 +453,14 @@ test("invalid task, comment, note, subtask, and role inputs are rejected", async
   });
   assert.equal(invalidPriority.status, 422);
 
-  const blankComment = await request(`/tasks/${projectId}/t/${taskId}/comments`, {
-    method: "POST",
-    token: memberToken,
-    body: { content: "   " },
-  });
+  const blankComment = await request(
+    `/tasks/${projectId}/t/${taskId}/comments`,
+    {
+      method: "POST",
+      token: memberToken,
+      body: { content: "   " },
+    },
+  );
   assert.equal(blankComment.status, 422);
 
   const blankNote = await request(`/notes/${projectId}`, {
@@ -403,18 +470,24 @@ test("invalid task, comment, note, subtask, and role inputs are rejected", async
   });
   assert.equal(blankNote.status, 422);
 
-  const blankSubtask = await request(`/tasks/${projectId}/t/${taskId}/subtasks`, {
-    method: "POST",
-    token: adminToken,
-    body: { title: "   " },
-  });
+  const blankSubtask = await request(
+    `/tasks/${projectId}/t/${taskId}/subtasks`,
+    {
+      method: "POST",
+      token: adminToken,
+      body: { title: "   " },
+    },
+  );
   assert.equal(blankSubtask.status, 422);
 
-  const createSubtask = await request(`/tasks/${projectId}/t/${taskId}/subtasks`, {
-    method: "POST",
-    token: adminToken,
-    body: { title: "Valid subtask" },
-  });
+  const createSubtask = await request(
+    `/tasks/${projectId}/t/${taskId}/subtasks`,
+    {
+      method: "POST",
+      token: adminToken,
+      body: { title: "Valid subtask" },
+    },
+  );
   assert.equal(createSubtask.status, 201);
 
   const invalidSubtaskUpdate = await request(
@@ -423,11 +496,14 @@ test("invalid task, comment, note, subtask, and role inputs are rejected", async
   );
   assert.equal(invalidSubtaskUpdate.status, 422);
 
-  const invalidRole = await request(`/projects/${projectId}/members/${member._id}`, {
-    method: "PUT",
-    token: adminToken,
-    body: { newRole: "owner" },
-  });
+  const invalidRole = await request(
+    `/projects/${projectId}/members/${member._id}`,
+    {
+      method: "PUT",
+      token: adminToken,
+      body: { newRole: "owner" },
+    },
+  );
   assert.equal(invalidRole.status, 422);
 });
 
@@ -446,10 +522,13 @@ test("a registered user can accept a valid invitation for their email", async ()
     tokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
   });
 
-  const accepted = await request(`/projects/invitations/${invitationToken}/accept`, {
-    method: "POST",
-    token: outsiderToken,
-  });
+  const accepted = await request(
+    `/projects/invitations/${invitationToken}/accept`,
+    {
+      method: "POST",
+      token: outsiderToken,
+    },
+  );
   assert.equal(accepted.status, 200, JSON.stringify(accepted.body));
 
   const membership = await ProjectMember.findOne({
@@ -458,10 +537,13 @@ test("a registered user can accept a valid invitation for their email", async ()
   });
   assert.ok(membership);
 
-  const acceptedAgain = await request(`/projects/invitations/${invitationToken}/accept`, {
-    method: "POST",
-    token: outsiderToken,
-  });
+  const acceptedAgain = await request(
+    `/projects/invitations/${invitationToken}/accept`,
+    {
+      method: "POST",
+      token: outsiderToken,
+    },
+  );
   assert.equal(acceptedAgain.status, 400);
 });
 
