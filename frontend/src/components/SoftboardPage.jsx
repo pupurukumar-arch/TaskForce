@@ -22,6 +22,7 @@ export function SoftboardPage({ user }) {
   const [hoveredSlot, setHoveredSlot] = useState(null);
   const boardRef = useRef(null);
   const hoveredSlotRef = useRef(null);
+  const slotSaveQueueRef = useRef(Promise.resolve());
   const load = () => api("/softboard").then(setNotes);
   useEffect(() => {
     load();
@@ -79,10 +80,21 @@ export function SoftboardPage({ user }) {
     const slotIndex =
       hoveredSlotRef.current ?? nearestFreeSlot(event, draggingId);
     if (slotIndex === null || !draggingId) return;
-    api(`/softboard/${draggingId}`, {
-      method: "PUT",
-      body: JSON.stringify({ slotIndex }),
-    }).then(load);
+    const noteId = draggingId;
+    setNotes((current) =>
+      current.map((note) =>
+        note._id === noteId ? { ...note, slotIndex } : note,
+      ),
+    );
+    slotSaveQueueRef.current = slotSaveQueueRef.current
+      .catch(() => {})
+      .then(() =>
+        api(`/softboard/${noteId}`, {
+          method: "PUT",
+          body: JSON.stringify({ slotIndex }),
+        }),
+      )
+      .catch(() => load());
     hoveredSlotRef.current = null;
     setHoveredSlot(null);
   };
