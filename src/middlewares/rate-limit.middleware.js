@@ -47,4 +47,17 @@ const authRateLimiter = rateLimit({
   ),
 });
 
-export { apiRateLimiter, authRateLimiter };
+// Gemini calls are comparatively expensive. Redis keeps this limit shared
+// across Vercel function instances when REDIS_URL is configured.
+const projectPulseRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  store: redisStore("taskforce:project-pulse-rate-limit:"),
+  handler: rateLimitResponse(
+    "Too many Project Pulse questions. Please try again in 15 minutes.",
+  ),
+});
+
+export { apiRateLimiter, authRateLimiter, projectPulseRateLimiter };

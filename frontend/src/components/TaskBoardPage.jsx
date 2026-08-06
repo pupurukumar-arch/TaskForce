@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { isManagerRole } from "../lib/taskAccess";
 import { useBackgroundRefresh } from "../lib/useBackgroundRefresh";
 import { TaskCard, TaskCreateModal } from "./TaskBoardParts";
+import { ProjectPulsePanel } from "./ProjectPulsePanel";
 
 const columns = [
   {
@@ -235,6 +236,7 @@ export function TaskBoardPage({ user }) {
           </Link>
         )}
       </nav>
+      {role === "project_admin" && <ProjectPulsePanel projectId={projectId} />}
       <section className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
           ["dueToday", "Due today"],
