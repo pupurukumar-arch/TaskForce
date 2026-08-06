@@ -31,7 +31,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1102.0",
     "@aws-sdk/s3-request-presigner": "^3.1102.0",
-    "@napi-rs/canvas": "^1.0.3",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -45,7 +44,6 @@
     "mongoose": "^8.16.5",
     "multer": "^2.0.2",
     "nodemailer": "9.0.4",
-    "pdf-parse": "^2.4.5",
     "rate-limit-redis": "^6.0.1",
     "redis": "^6.2.0",
     "swagger-ui-express": "^5.0.1"
