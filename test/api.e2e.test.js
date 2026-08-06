@@ -255,6 +255,12 @@ test("project admin can create a project and add a member", async () => {
   assert.equal(createProject.status, 201);
   projectId = createProject.body.data._id;
 
+  const creatorMembership = await ProjectMember.findOne({
+    project: projectId,
+    user: admin._id,
+  });
+  assert.equal(creatorMembership?.role, "admin");
+
   const addMember = await request(`/projects/${projectId}/members`, {
     method: "POST",
     token: adminToken,

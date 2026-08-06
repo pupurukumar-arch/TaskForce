@@ -135,25 +135,41 @@ const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
   const brief = req.file ? await uploadProjectBrief(req.file) : undefined;
-  const project = await Project.create({
-    name,
-    description,
-    createdBy: new mongoose.Types.ObjectId(req.user._id),
-    brief,
-  });
+  const session = await mongoose.startSession();
+  let project;
 
-  await ProjectMember.create({
-    user: new mongoose.Types.ObjectId(req.user._id),
-    project: new mongoose.Types.ObjectId(project._id),
-    role: UserRolesEnum.ADMIN,
-  });
+  try {
+    await session.withTransaction(async () => {
+      [project] = await Project.create(
+        [{
+          name,
+          description,
+          createdBy: new mongoose.Types.ObjectId(req.user._id),
+          brief,
+        }],
+        { session },
+      );
 
-  await recordActivity({
-    project: project._id,
-    actor: req.user._id,
-    type: "project_created",
-    message: `Created project: ${project.name}`,
-  });
+      await ProjectMember.create(
+        [{
+          user: new mongoose.Types.ObjectId(req.user._id),
+          project: project._id,
+          role: UserRolesEnum.ADMIN,
+        }],
+        { session },
+      );
+
+      await recordActivity({
+        project: project._id,
+        actor: req.user._id,
+        type: "project_created",
+        message: `Created project: ${project.name}`,
+        session,
+      });
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(201)
