@@ -128,21 +128,21 @@ export function ProjectProgressPage({ user }) {
       )}
       {!view && manager && (
         <>
-          <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 shadow-sm">
-          <span className="inline-flex rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+          <p className="mt-8 inline-flex rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
             For Leaders Only
-          </span>
-          <h3 className="mt-4 text-xl font-semibold text-slate-900">
-            Project Intelligence
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Review the delivery picture before taking action with your team.
           </p>
+          <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-slate-900">
+              Project Intelligence
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Review the delivery picture before taking action with your team.
+            </p>
           </section>
           <button
             type="button"
             onClick={openProjectOverview}
-            className="mt-4 w-full max-w-xl rounded-xl border border-indigo-100 bg-white px-5 py-4 text-left shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/50"
+            className="mt-4 w-full max-w-xl rounded-2xl border border-indigo-100 bg-white px-6 py-5 text-left shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/50"
           >
             <p className="text-sm font-semibold text-indigo-700">
               Project overview
