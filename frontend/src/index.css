@@ -517,6 +517,27 @@ textarea {
 .orbit-theme-night .bg-blue-50\/60 {
   background-color: #1b2143 !important;
 }
+
+.orbit-theme-night .project-intelligence-panel {
+  border-color: rgb(96 165 250 / 42%);
+  background:
+    radial-gradient(circle at 92% 8%, rgb(96 165 250 / 18%), transparent 38%),
+    linear-gradient(145deg, #102b57, #0c1f43);
+  box-shadow: 0 1rem 2.3rem rgb(2 12 34 / 38%);
+}
+.orbit-theme-night .project-intelligence-panel > span {
+  border-color: rgb(147 197 253 / 30%);
+  background: rgb(37 99 235 / 22%);
+  color: #bfdbfe;
+}
+.orbit-theme-night .project-intelligence-panel button {
+  border-color: rgb(147 197 253 / 26%);
+  background: rgb(15 43 86 / 76%);
+}
+.orbit-theme-night .project-intelligence-panel button:hover {
+  border-color: rgb(147 197 253 / 54%);
+  background: rgb(30 64 175 / 32%);
+}
 .orbit-theme-night .border-slate-100,
 .orbit-theme-night .border-slate-200,
 .orbit-theme-night .border-slate-200\/80,

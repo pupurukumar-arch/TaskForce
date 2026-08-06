@@ -80,10 +80,10 @@ export function ProjectProgressPage({ user }) {
           ← Back to My Workload
         </Link>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
-          Progress
+          Project Intelligence and Progress
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Review progress across this project.
+          Review project health, delivery progress, and member workload.
         </p>
       </section>
       <nav className="mt-6 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
@@ -94,7 +94,7 @@ export function ProjectProgressPage({ user }) {
           My Workload
         </Link>
         <span className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
-          Progress
+          Project Intelligence and Progress
         </span>
         <Link
           to={`/projects/${projectId}/members`}
@@ -127,18 +127,24 @@ export function ProjectProgressPage({ user }) {
         </p>
       )}
       {!view && manager && (
-        <section className="mt-8 max-w-xl">
+        <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 shadow-sm">
+          <span className="inline-flex rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+            For Leaders Only
+          </span>
+          <h3 className="mt-4 text-xl font-semibold text-slate-900">
+            Project Intelligence
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Review the delivery picture before taking action with your team.
+          </p>
           <button
             type="button"
             onClick={openProjectOverview}
-            className="w-full rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 text-left shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/50"
+            className="mt-5 w-full rounded-xl border border-indigo-100 bg-white px-5 py-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/50"
           >
             <p className="text-sm font-semibold text-indigo-700">
-              For project leaders
-            </p>
-            <h3 className="mt-2 text-xl font-semibold text-slate-900">
               Project overview
-            </h3>
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               See completion, overdue work, and member task progress.
             </p>
@@ -174,7 +180,7 @@ export function ProjectProgressPage({ user }) {
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600"
             >
-              Back to progress choices
+              Back to Project Intelligence
             </button>
           </section>
           <section className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/35 p-6">
