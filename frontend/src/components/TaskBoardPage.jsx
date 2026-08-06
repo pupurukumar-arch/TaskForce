@@ -5,7 +5,6 @@ import { api } from "../lib/api";
 import { isManagerRole } from "../lib/taskAccess";
 import { useBackgroundRefresh } from "../lib/useBackgroundRefresh";
 import { TaskCard, TaskCreateModal } from "./TaskBoardParts";
-import { ProjectPulsePanel } from "./ProjectPulsePanel";
 
 const columns = [
   {
@@ -198,6 +197,12 @@ export function TaskBoardPage({ user }) {
           My Workload
         </span>
         <Link
+          to={`/projects/${projectId}/progress`}
+          className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+        >
+          Project Intelligence and Progress
+        </Link>
+        <Link
           to={`/projects/${projectId}/members?mode=view`}
           className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
         >
@@ -230,7 +235,6 @@ export function TaskBoardPage({ user }) {
           </Link>
         )}
       </nav>
-      {["admin", "project_admin"].includes(role) && <ProjectPulsePanel projectId={projectId} />}
       <section className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
           ["dueToday", "Due today"],

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
+import { ProjectPulsePanel } from "./ProjectPulsePanel";
 
 const isManagerRole = (role) => role === "admin" || role === "project_admin";
 const statusLabels = {
@@ -138,6 +139,7 @@ export function ProjectProgressPage({ user }) {
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Review the delivery picture before taking action with your team.
             </p>
+            <ProjectPulsePanel projectId={projectId} />
           </section>
           <button
             type="button"
