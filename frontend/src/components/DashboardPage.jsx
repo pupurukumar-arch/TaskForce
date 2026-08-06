@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
+import { useBackgroundRefresh } from "../lib/useBackgroundRefresh";
 
 const roleLabel = {
   admin: "Project owner",
@@ -64,13 +65,17 @@ export function DashboardPage({ user }) {
   });
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
+  const loadProjects = useCallback(() => {
     api("/projects")
       .then((projectData) => {
         setProjects(projectData);
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+  useBackgroundRefresh(loadProjects);
 
   const createProject = async (event) => {
     event.preventDefault();

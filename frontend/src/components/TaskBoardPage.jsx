@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { api } from "../lib/api";
 import { isManagerRole } from "../lib/taskAccess";
+import { useBackgroundRefresh } from "../lib/useBackgroundRefresh";
 import { TaskCard, TaskCreateModal } from "./TaskBoardParts";
 
 const columns = [
@@ -69,6 +70,7 @@ export function TaskBoardPage({ user }) {
   useEffect(() => {
     load();
   }, [load]);
+  useBackgroundRefresh(load);
 
   const role = members.find((member) => member.user._id === user._id)?.role;
   const isManager = isManagerRole(role);

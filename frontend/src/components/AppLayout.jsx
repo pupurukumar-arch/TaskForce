@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api, clearToken } from "../lib/api";
+import { useBackgroundRefresh } from "../lib/useBackgroundRefresh";
 
 const links = [
   ["Dashboard", "/dashboard"],
@@ -25,13 +26,17 @@ export function AppLayout({
   useEffect(() => {
     document.body.classList.toggle("orbit-body-night", isNightTheme);
   }, [isNightTheme]);
-  useEffect(() => {
+  const loadUnreadNotifications = useCallback(() => {
     api("/notifications")
       .then((items) =>
         setUnreadCount(items.filter((item) => !item.isRead).length),
       )
       .catch(() => {});
   }, []);
+  useEffect(() => {
+    loadUnreadNotifications();
+  }, [loadUnreadNotifications]);
+  useBackgroundRefresh(loadUnreadNotifications);
   const logout = async () => {
     try {
       await api("/auth/logout", { method: "POST" });

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { AppLayout } from './AppLayout'
+import { useBackgroundRefresh } from '../lib/useBackgroundRefresh'
 
 function formatDate(value) {
   if (!value) return 'Just now'
@@ -17,28 +18,24 @@ export function NotificationsPage({ user }) {
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length
 
-  useEffect(() => {
-    let isCurrent = true
-
-    async function loadNotifications() {
-      setIsLoading(true)
+  const loadNotifications = useCallback(async (showLoading = false) => {
+      if (showLoading) setIsLoading(true)
       setError('')
 
       try {
         const data = await api('/notifications')
-        if (isCurrent) setNotifications(data)
+        setNotifications(data)
       } catch (requestError) {
-        if (isCurrent) setError(requestError.message)
+        setError(requestError.message)
       } finally {
-        if (isCurrent) setIsLoading(false)
+        if (showLoading) setIsLoading(false)
       }
-    }
+    }, [])
 
-    loadNotifications()
-    return () => {
-      isCurrent = false
-    }
-  }, [])
+  useEffect(() => {
+    loadNotifications(true)
+  }, [loadNotifications])
+  useBackgroundRefresh(loadNotifications)
 
   async function markAsRead(notificationId) {
     setMarkingReadId(notificationId)
