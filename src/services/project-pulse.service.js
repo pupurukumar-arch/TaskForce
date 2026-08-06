@@ -141,10 +141,13 @@ export const getProjectPulseContext = async (projectId) => {
   return context;
 };
 
-export const buildProjectPulsePrompt = ({ context, question }) => `You are Project Pulse, a precise project-management analyst. Answer only about the single project in the supplied context. Do not use outside knowledge or invent facts. If the context does not contain enough evidence, say exactly: "I don't have enough information." Reference actual teammate names, task titles, statuses, and dates where they exist. Keep the answer concise and useful for a Project Admin.\n\nPROJECT CONTEXT:\n${JSON.stringify(context)}\n\nQUESTION:\n${question}`;
+export const buildProjectPulsePrompt = ({ context, question }) => `You are Project Pulse, a precise project-management analyst. Answer only about the single project in the supplied context. Do not use outside knowledge or invent facts. If the context does not contain enough evidence, say exactly: "I don't have enough information." Give a complete, direct answer in plain text; do not use Markdown, introductions, or unfinished sentences. For overdue-task questions, list every overdue task with its title, assignee, due date, and current status. Reference actual teammate names, task titles, statuses, and dates where they exist. Keep the answer concise and useful for a Project Admin.\n\nPROJECT CONTEXT:\n${JSON.stringify(context)}\n\nQUESTION:\n${question}`;
 
 const extractGeminiText = (payload) =>
-  payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") ||
+  payload?.candidates?.[0]?.content?.parts
+    ?.filter((part) => !part.thought)
+    .map((part) => part.text || "")
+    .join("") ||
   (payload?.event_type === "content.delta" && payload?.delta?.type === "text" ? payload.delta.text : "");
 
 export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
@@ -163,7 +166,11 @@ export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
       signal,
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 450 },
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 700,
+          thinkingConfig: { thinkingLevel: "minimal" },
+        },
       }),
     },
   );
