@@ -17,6 +17,14 @@ const projectSchema = new Schema(
       size: Number,
       name: String,
     },
+    // Extracted once when a brief is uploaded, so project intelligence does
+    // not need to download and re-parse the private file for every question.
+    briefContext: {
+      text: String,
+      tables: [String],
+      imageInsights: String,
+      sourceUpdatedAt: Date,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

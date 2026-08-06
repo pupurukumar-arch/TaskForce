@@ -17,6 +17,8 @@ import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 import { recordActivity } from "../utils/activity.js";
 import { createNotification } from "../utils/notification.js";
 import { projectInvitationMailgenContent, sendEmail } from "../utils/mail.js";
+import { parseProjectBriefBufferForRag } from "../services/project-brief-rag-parser.service.js";
+import { invalidateProjectPulseContext } from "../services/project-pulse.service.js";
 import crypto from "crypto";
 
 const getProjects = asyncHandler(async (req, res) => {
@@ -135,6 +137,16 @@ const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
   const brief = req.file ? await uploadProjectBrief(req.file) : undefined;
+  const parsedBriefContext = req.file
+    ? await parseProjectBriefBufferForRag({
+      buffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+      name: req.file.originalname,
+    })
+    : undefined;
+  const hasBriefContext = Boolean(
+    parsedBriefContext?.text || parsedBriefContext?.tables?.length || parsedBriefContext?.imageInsights,
+  );
   const session = await mongoose.startSession();
   let project;
 
@@ -146,6 +158,14 @@ const createProject = asyncHandler(async (req, res) => {
           description,
           createdBy: new mongoose.Types.ObjectId(req.user._id),
           brief,
+          ...(hasBriefContext && {
+            briefContext: {
+              text: parsedBriefContext.text,
+              tables: parsedBriefContext.tables,
+              imageInsights: parsedBriefContext.imageInsights,
+              sourceUpdatedAt: new Date(),
+            },
+          }),
         }],
         { session },
       );
@@ -192,6 +212,7 @@ const updateProject = asyncHandler(async (req, res) => {
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
+  await invalidateProjectPulseContext(projectId);
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project updated successfully"));
@@ -203,9 +224,24 @@ const uploadProjectBriefFile = asyncHandler(async (req, res) => {
   if (!project) throw new ApiError(404, "Project not found");
   const previousBrief = project.brief;
   project.brief = await uploadProjectBrief(req.file);
+  const parsedBriefContext = await parseProjectBriefBufferForRag({
+    buffer: req.file.buffer,
+    mimetype: req.file.mimetype,
+    name: req.file.originalname,
+  });
+  const hasBriefContext = Boolean(
+    parsedBriefContext?.text || parsedBriefContext?.tables?.length || parsedBriefContext?.imageInsights,
+  );
+  project.briefContext = hasBriefContext ? {
+    text: parsedBriefContext.text,
+    tables: parsedBriefContext.tables,
+    imageInsights: parsedBriefContext.imageInsights,
+    sourceUpdatedAt: new Date(),
+  } : undefined;
   await project.save();
+  await invalidateProjectPulseContext(project._id);
   if (previousBrief?.key) await deleteTaskAttachments([previousBrief]);
-  return res.status(200).json(new ApiResponse(200, project, "Project Brief uploaded"));
+  return res.status(200).json(new ApiResponse(200, project, "Project Brief uploaded and indexed for Project Pulse"));
 });
 
 const deleteProject = asyncHandler(async (req, res) => {

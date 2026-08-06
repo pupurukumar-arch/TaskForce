@@ -43,6 +43,17 @@ const cacheContext = async (projectId, context) => {
   }
 };
 
+export const invalidateProjectPulseContext = async (projectId) => {
+  const client = getRedisClient();
+  if (!client) return;
+  try {
+    await connectRedis();
+    await client.del(projectPulseCacheKey(projectId));
+  } catch (error) {
+    console.warn("Project Pulse cache invalidation skipped", error.message);
+  }
+};
+
 export const getProjectPulseContext = async (projectId) => {
   const cached = await readCachedContext(projectId);
   if (cached) return cached;
@@ -63,7 +74,9 @@ export const getProjectPulseContext = async (projectId) => {
       .sort({ createdAt: -1 })
       .limit(25)
       .lean(),
-    parseProjectBriefForRag(project.brief),
+    project.briefContext?.sourceUpdatedAt
+      ? Promise.resolve({ filename: project.brief?.name, ...project.briefContext })
+      : parseProjectBriefForRag(project.brief),
   ]);
 
   const subtasks = tasks.length
