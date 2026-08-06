@@ -152,46 +152,29 @@ export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
     throw new ApiError(503, "Project Pulse is not configured yet");
   }
   const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:streamGenerateContent?alt=sse",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "text/event-stream",
+        Accept: "application/json",
         "x-goog-api-key": process.env.GEMINI_API_KEY,
       },
       signal,
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 700 },
+        generationConfig: { temperature: 0.2, maxOutputTokens: 450 },
       }),
     },
   );
-  if (!response.ok || !response.body) {
+  if (!response.ok) {
     const detail = await response.text();
     if (response.status === 429) throw new ApiError(429, "Gemini is rate-limited. Please try again shortly.");
     console.error("Gemini Project Pulse error", response.status, detail.slice(0, 500));
     throw new ApiError(502, "Project Pulse could not generate an answer right now");
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() || "";
-    for (const event of events) {
-      const data = event.split("\n").find((line) => line.startsWith("data:"))?.slice(5).trim();
-      if (!data || data === "[DONE]") continue;
-      try {
-        const token = extractGeminiText(JSON.parse(data));
-        if (token) onToken(token);
-      } catch {
-        // Ignore malformed provider event fragments rather than ending the client stream.
-      }
-    }
-  }
+  const answer = extractGeminiText(await response.json());
+  if (!answer) throw new ApiError(502, "Project Pulse returned an empty answer. Please try again.");
+  onToken(answer);
 };
