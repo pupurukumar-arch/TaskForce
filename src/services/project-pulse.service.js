@@ -6,6 +6,7 @@ import { ProjectNote } from "../models/note.models.js";
 import { Activity } from "../models/activity.models.js";
 import { connectRedis, getRedisClient } from "../config/redis.js";
 import { ApiError } from "../utils/api-error.js";
+import { parseProjectBriefForRag } from "./project-brief-rag-parser.service.js";
 
 const CACHE_TTL_SECONDS = 300;
 const MAX_TASKS_IN_CONTEXT = 150;
@@ -49,7 +50,7 @@ export const getProjectPulseContext = async (projectId) => {
   const project = await Project.findById(projectId).lean();
   if (!project) throw new ApiError(404, "Project not found");
 
-  const [members, tasks, notes, activities] = await Promise.all([
+  const [members, tasks, notes, activities, briefRetrieval] = await Promise.all([
     ProjectMember.find({ project: projectId }).populate("user", "username fullName").lean(),
     Task.find({ project: projectId })
       .populate("assignedTo", "username fullName")
@@ -62,6 +63,7 @@ export const getProjectPulseContext = async (projectId) => {
       .sort({ createdAt: -1 })
       .limit(25)
       .lean(),
+    parseProjectBriefForRag(project.brief),
   ]);
 
   const subtasks = tasks.length
@@ -115,7 +117,11 @@ export const getProjectPulseContext = async (projectId) => {
     project: {
       name: text(project.name, 160),
       description: text(project.description, 1000),
-      brief: project.brief?.name ? { uploaded: true, name: text(project.brief.name, 160) } : { uploaded: false },
+      brief: project.brief?.name ? {
+        uploaded: true,
+        name: text(project.brief.name, 160),
+        retrieval: briefRetrieval,
+      } : { uploaded: false },
     },
     contextNote: tasks.length === MAX_TASKS_IN_CONTEXT
       ? `Task detail is capped at the ${MAX_TASKS_IN_CONTEXT} most recent tasks; totals remain project-scoped.`

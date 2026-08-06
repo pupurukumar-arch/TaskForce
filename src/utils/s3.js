@@ -89,6 +89,23 @@ export const getAttachmentUrl = async (key) => {
   }
 };
 
+// Server-side Project Pulse retrieval needs the private object bytes; this is
+// never exposed to the browser and remains protected by normal project access.
+export const getAttachmentBuffer = async (key) => {
+  if (isTestEnvironment) return Buffer.alloc(0);
+
+  ensureS3Settings();
+  try {
+    const response = await getS3Client().send(new GetObjectCommand({
+      Bucket: bucket(),
+      Key: key,
+    }));
+    return Buffer.from(await response.Body.transformToByteArray());
+  } catch (error) {
+    throw toStorageError(error);
+  }
+};
+
 export const withAttachmentUrls = async (task) => {
   const taskData = task.toObject ? task.toObject() : task;
   taskData.attachments = await Promise.all(
