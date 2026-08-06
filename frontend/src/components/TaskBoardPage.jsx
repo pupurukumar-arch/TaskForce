@@ -39,6 +39,7 @@ export function TaskBoardPage({ user }) {
   const [members, setMembers] = useState([]);
   const [dueSummary, setDueSummary] = useState(null);
   const [error, setError] = useState("");
+  const [updatingStatusIds, setUpdatingStatusIds] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedView, setSelectedView] = useState(null);
@@ -136,6 +137,15 @@ export function TaskBoardPage({ user }) {
     }
   };
   const updateStatus = async (task, status) => {
+    if (task.status === status || updatingStatusIds.includes(task._id)) return;
+    const previousTask = task;
+    setError("");
+    setUpdatingStatusIds((current) => [...current, task._id]);
+    setTasks((currentTasks) =>
+      currentTasks.map((item) =>
+        item._id === task._id ? { ...item, status } : item,
+      ),
+    );
     try {
       const updated = await api(`/tasks/${projectId}/t/${task._id}`, {
         method: "PUT",
@@ -146,8 +156,22 @@ export function TaskBoardPage({ user }) {
           item._id === task._id ? { ...item, ...updated } : item,
         ),
       );
+      void api(`/tasks/${projectId}/due-summary`)
+        .then(setDueSummary)
+        .catch(() => {});
     } catch (requestError) {
+      setTasks((currentTasks) =>
+        currentTasks.map((item) =>
+          item._id === task._id && item.status === status
+            ? { ...item, ...previousTask }
+            : item,
+        ),
+      );
       setError(requestError.message);
+    } finally {
+      setUpdatingStatusIds((current) =>
+        current.filter((taskId) => taskId !== task._id),
+      );
     }
   };
   const reviewTask = async (task, approved) => {
@@ -312,6 +336,7 @@ export function TaskBoardPage({ user }) {
                   projectId={projectId}
                   user={user}
                   isManager={isManager}
+                  isStatusUpdating={updatingStatusIds.includes(task._id)}
                   onStatusChange={updateStatus}
                   onApprove={reviewTask}
                 />
