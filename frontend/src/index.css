@@ -538,6 +538,22 @@ textarea {
   border-color: rgb(147 197 253 / 54%);
   background: rgb(30 64 175 / 32%);
 }
+.orbit-theme-night .project-pulse-panel {
+  border-color: rgb(96 165 250 / 34%);
+  background:
+    radial-gradient(circle at 94% 0%, rgb(59 130 246 / 15%), transparent 34%),
+    linear-gradient(145deg, rgb(10 34 73 / 92%), rgb(8 24 54 / 94%));
+  box-shadow: inset 0 1px 0 rgb(191 219 254 / 8%), 0 0.75rem 1.8rem rgb(2 12 34 / 24%);
+}
+.orbit-theme-night .project-pulse-panel form,
+.orbit-theme-night .project-pulse-panel article:not(.bg-violet-600),
+.orbit-theme-night .project-pulse-panel .bg-white\/80 {
+  border-color: rgb(96 165 250 / 24%);
+  background: rgb(11 33 70 / 86%);
+}
+.orbit-theme-night .project-pulse-panel .border-violet-100 {
+  border-color: rgb(96 165 250 / 20%);
+}
 .orbit-theme-night .border-slate-100,
 .orbit-theme-night .border-slate-200,
 .orbit-theme-night .border-slate-200\/80,
