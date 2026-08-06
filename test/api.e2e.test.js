@@ -604,6 +604,29 @@ test("a registered user can accept a valid invitation for their email", async ()
   assert.equal(acceptedAgain.status, 400);
 });
 
+test("sensitive authentication routes share a 30-request limiter", async () => {
+  let limitedResponse;
+
+  for (let attempt = 0; attempt < 31; attempt += 1) {
+    const response = await request("/auth/login", {
+      method: "POST",
+      body: {},
+    });
+
+    if (response.status === 429) {
+      limitedResponse = response.body;
+      break;
+    }
+  }
+
+  assert.ok(limitedResponse);
+  assert.equal(limitedResponse.statusCode, 429);
+  assert.equal(
+    limitedResponse.message,
+    "Too many authentication requests. Please try again in 15 minutes.",
+  );
+});
+
 test("API rate limiting returns a JSON 429 response", async () => {
   let limitedResponse;
 

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import app from "./app.js";
 import connectDB, { assertSeparateTestDatabase } from "./db/index.js";
+import { connectRedis } from "./config/redis.js";
 
 dotenv.config({
   path: "./.env",
@@ -53,7 +54,7 @@ if (!databaseUri) {
   process.exit(1);
 }
 
-connectDB(databaseUri)
+Promise.all([connectDB(databaseUri), connectRedis()])
   .then(() => {
     app.listen(port, () => {
       console.log(`Example app listening on port http://localhost:${port}`);

@@ -1,4 +1,26 @@
 import { rateLimit } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { getRedisClient } from "../config/redis.js";
+
+const redisClient = getRedisClient();
+
+const redisStore = (prefix) =>
+  redisClient
+    ? new RedisStore({
+        prefix,
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      })
+    : undefined;
+
+const rateLimitResponse = (message) => (_req, res) => {
+  res.status(429).json({
+    statusCode: 429,
+    data: null,
+    message,
+    success: false,
+    errors: [],
+  });
+};
 
 const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -7,15 +29,22 @@ const apiRateLimiter = rateLimit({
   limit: process.env.NODE_ENV === "production" ? 100 : 1000,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  handler: (_req, res) => {
-    res.status(429).json({
-      statusCode: 429,
-      data: null,
-      message: "Too many requests. Please try again in 15 minutes.",
-      success: false,
-      errors: [],
-    });
-  },
+  handler: rateLimitResponse(
+    "Too many requests. Please try again in 15 minutes.",
+  ),
 });
 
-export { apiRateLimiter };
+// On Vercel, this uses Redis so all function instances share one counter.
+// Without REDIS_URL (local development), express-rate-limit safely uses memory.
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  store: redisStore("taskforce:auth-rate-limit:"),
+  handler: rateLimitResponse(
+    "Too many authentication requests. Please try again in 15 minutes.",
+  ),
+});
+
+export { apiRateLimiter, authRateLimiter };
