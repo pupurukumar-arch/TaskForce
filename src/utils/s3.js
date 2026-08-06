@@ -102,6 +102,12 @@ export const getAttachmentBuffer = async (key) => {
     }));
     return Buffer.from(await response.Body.transformToByteArray());
   } catch (error) {
+    // Keep the provider detail in server logs only; it helps distinguish a
+    // missing object from an IAM read-permission problem without exposing it.
+    console.error("Private S3 attachment read failed", {
+      code: error?.code || error?.Code || error?.name,
+      message: error?.message,
+    });
     throw toStorageError(error);
   }
 };
