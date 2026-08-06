@@ -132,12 +132,12 @@ export function ProjectProgressPage({ user }) {
           <p className="mt-8 inline-flex rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
             For Leaders Only
           </p>
-          <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 shadow-sm">
+          <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-5 shadow-sm">
             <h3 className="text-xl font-semibold text-slate-900">
               🧠 Project Intelligence
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Review the delivery picture before taking action with your team.
+              Break the Project Brief into tasks or subtasks, check deadlines, and get project answers.
             </p>
             <ProjectPulsePanel projectId={projectId} />
           </section>

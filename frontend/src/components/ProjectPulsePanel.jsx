@@ -67,14 +67,10 @@ export function ProjectPulsePanel({ projectId }) {
   };
 
   return (
-    <section className="project-pulse-panel mt-6 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-5 shadow-sm shadow-violet-100/60">
+    <section className="project-pulse-panel mt-4">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Project Pulse</h3>
-        <p className="mt-1 text-sm text-slate-600">Ask about tasks, deadlines, people, notes, activity, or the Project Brief.</p>
-      </div>
-      <div className="mt-5 border-t border-violet-100 pt-5">
         <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-          {!messages.length && <p className="rounded-xl bg-white/80 p-4 text-sm text-slate-500">Try: “Which tasks are overdue?” or “Break the Project Brief into suggested tasks.”</p>}
+          {!messages.length && <p className="rounded-xl bg-white/80 p-3 text-sm text-slate-500">Try: “Break the Project Brief into tasks and subtasks.”</p>}
           {messages.map((message, index) => (
             <article key={`${message.role}-${index}`} className={`rounded-xl p-3 text-sm leading-6 ${message.role === "user" ? "ml-8 bg-violet-600 text-white" : "mr-8 border border-slate-200 bg-white text-slate-700"}`}>
               {message.text || <span className="text-slate-400">Thinking…</span>}
@@ -83,8 +79,8 @@ export function ProjectPulsePanel({ projectId }) {
         </div>
         {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
         <form onSubmit={ask} className="mt-4 flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={800} placeholder="Ask Project Pulse…" className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
-          <button aria-label="Ask Project Pulse" title="Ask Project Pulse" disabled={isAsking || !question.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-lg font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50">
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={800} placeholder="Ask a project question…" className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+          <button aria-label="Send question" title="Send question" disabled={isAsking || !question.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-lg font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50">
             {isAsking ? "…" : "↑"}
           </button>
         </form>
