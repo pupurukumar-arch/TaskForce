@@ -74,7 +74,7 @@ router.route("/:projectId/pulse/ask").post(
     }
 
     const abortController = new AbortController();
-    const timeout = setTimeout(() => abortController.abort(), 45_000);
+    const timeout = setTimeout(() => abortController.abort(), 20_000);
     res.on("close", () => {
       if (!res.writableEnded) abortController.abort();
     });

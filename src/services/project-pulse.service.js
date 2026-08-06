@@ -10,6 +10,7 @@ import { parseProjectBriefForRag } from "./project-brief-rag-parser.service.js";
 
 const CACHE_TTL_SECONDS = 300;
 const MAX_TASKS_IN_CONTEXT = 150;
+const PULSE_MODEL = "gemini-3.5-flash-lite";
 const text = (value, max = 280) =>
   typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
 const date = (value) => (value ? new Date(value).toISOString().slice(0, 10) : null);
@@ -154,7 +155,7 @@ export const getProjectPulseContext = async (projectId) => {
   return context;
 };
 
-export const buildProjectPulsePrompt = ({ context, question }) => `You are Project Pulse, a precise project-management analyst. Answer only about the single project in the supplied context. Do not use outside knowledge or invent facts. If the context does not contain enough evidence, say exactly: "I don't have enough information." Give a complete, direct answer in plain text; do not use Markdown, introductions, or unfinished sentences. For overdue-task questions, list every overdue task with its title, assignee, due date, and current status. Reference actual teammate names, task titles, statuses, and dates where they exist. Keep the answer concise and useful for a Project Admin.\n\nPROJECT CONTEXT:\n${JSON.stringify(context)}\n\nQUESTION:\n${question}`;
+export const buildProjectPulsePrompt = ({ context, question }) => `You are Project Pulse, a precise project-management analyst. Answer only about the single project in the supplied context. Do not use outside knowledge or invent facts. If the context does not contain enough evidence, say exactly: "I don't have enough information." Give a complete, direct answer in plain text; do not use Markdown, introductions, or unfinished sentences. For overdue-task questions, list every overdue task with its title, assignee, due date, and current status. When asked to break a project brief into tasks, create 5 to 8 suggested tasks grounded in the brief. For each, give: title, short description, priority, and due date only if the brief provides one. Clearly label these as suggestions; never claim they were created in the project. Reference actual teammate names, task titles, statuses, and dates where they exist. Keep the answer concise and useful for a Project Admin.\n\nPROJECT CONTEXT:\n${JSON.stringify(context)}\n\nQUESTION:\n${question}`;
 
 const extractGeminiText = (payload) =>
   payload?.candidates?.[0]?.content?.parts
@@ -168,7 +169,7 @@ export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
     throw new ApiError(503, "Project Pulse is not configured yet");
   }
   const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+    `https://generativelanguage.googleapis.com/v1beta/models/${PULSE_MODEL}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -181,7 +182,7 @@ export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 700,
+          maxOutputTokens: 550,
           thinkingConfig: { thinkingLevel: "minimal" },
         },
       }),
