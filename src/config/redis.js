@@ -12,7 +12,15 @@ const getRedisClient = () => {
   if (!process.env.REDIS_URL) return null;
 
   if (!redisClient) {
-    redisClient = createClient({ url: process.env.REDIS_URL });
+    const connectionUrl = new URL(process.env.REDIS_URL);
+    const usesUpstashTcp = connectionUrl.hostname.endsWith(".upstash.io");
+
+    redisClient = createClient({
+      url: process.env.REDIS_URL,
+      // Upstash's TCP URL is redis://..., while its documented CLI command
+      // enables TLS separately. Keep that transport secure for node-redis too.
+      ...(usesUpstashTcp ? { socket: { tls: true } } : {}),
+    });
     redisClient.on("error", (error) => {
       console.error("Redis client error", error.message);
     });
