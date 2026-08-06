@@ -236,7 +236,7 @@ export function TaskBoardPage({ user }) {
           </Link>
         )}
       </nav>
-      {role === "project_admin" && <ProjectPulsePanel projectId={projectId} />}
+      {["admin", "project_admin"].includes(role) && <ProjectPulsePanel projectId={projectId} />}
       <section className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
           ["dueToday", "Due today"],

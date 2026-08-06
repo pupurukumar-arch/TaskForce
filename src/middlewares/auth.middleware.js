@@ -62,16 +62,16 @@ export const validateProjectPermission = (roles = []) => {
   });
 };
 
-// Project Pulse is intentionally limited to a Project Admin membership on the
-// project in the URL. A global UI role is never trusted for this decision.
+// Project Pulse is intentionally limited to project leadership on the project
+// in the URL. A global UI role is never trusted for this decision.
 export const validateProjectPulseAdmin = asyncHandler(async (req, _res, next) => {
   const membership = await ProjectMember.findOne({
     project: new mongoose.Types.ObjectId(req.params.projectId),
     user: new mongoose.Types.ObjectId(req.user._id),
   }).lean();
 
-  if (!membership || membership.role !== UserRolesEnum.PROJECT_ADMIN) {
-    throw new ApiError(403, "Project Pulse is available only to this project's Project Admin");
+  if (!membership || ![UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN].includes(membership.role)) {
+    throw new ApiError(403, "Project Pulse is available only to this project's project leadership");
   }
 
   req.projectMembership = membership;
