@@ -152,7 +152,7 @@ export const streamGeminiAnswer = async ({ prompt, onToken, signal }) => {
     throw new ApiError(503, "Project Pulse is not configured yet");
   }
   const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
     {
       method: "POST",
       headers: {
