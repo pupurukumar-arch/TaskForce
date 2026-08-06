@@ -137,7 +137,7 @@ export function ProjectProgressPage({ user }) {
               🧠 Project Intelligence
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Break the Project Brief into tasks or subtasks, check deadlines, and get project answers.
+              Understand why deadlines slip and get clear project answers.
             </p>
             <ProjectPulsePanel projectId={projectId} />
           </section>
