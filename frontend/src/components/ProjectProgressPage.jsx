@@ -133,7 +133,7 @@ export function ProjectProgressPage({ user }) {
           </p>
           <section className="project-intelligence-panel mt-8 max-w-xl rounded-2xl border border-indigo-100 bg-[#fffdf9] p-6 shadow-sm">
             <h3 className="text-xl font-semibold text-slate-900">
-              Project Intelligence
+              🧠 Project Intelligence
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Review the delivery picture before taking action with your team.

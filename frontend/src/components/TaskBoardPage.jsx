@@ -198,12 +198,6 @@ export function TaskBoardPage({ user }) {
           My Workload
         </span>
         <Link
-          to={`/projects/${projectId}/progress`}
-          className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-        >
-          Progress
-        </Link>
-        <Link
           to={`/projects/${projectId}/members?mode=view`}
           className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
         >
