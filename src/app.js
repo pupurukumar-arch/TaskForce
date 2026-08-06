@@ -8,6 +8,11 @@ import { apiRateLimiter } from "./middlewares/rate-limit.middleware.js";
 import { enforceTrustedOrigin } from "./middlewares/security.middleware.js";
 
 const app = express();
+// Vercel forwards the original client IP. Trust only its immediate proxy so
+// rate limits use the visitor IP rather than the platform proxy address.
+if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
