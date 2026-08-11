@@ -20,6 +20,82 @@ body.orbit-body-night {
   background: #0b1020;
   color: #dbe7ff;
 }
+
+.orbit-auth-shell {
+  isolation: isolate;
+}
+
+.orbit-starfield {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.orbit-starfield__dust {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle, rgb(224 231 255 / 68%) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgb(196 181 253 / 54%) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgb(255 255 255 / 40%) 0 1px, transparent 1.4px);
+  background-position: 1.8rem 2.4rem, 7.1rem 5.8rem, 3.7rem 9.6rem;
+  background-size: 13rem 11rem, 17rem 15rem, 19rem 17rem;
+}
+
+.orbit-shooting-star {
+  position: absolute;
+  top: var(--star-y);
+  left: var(--star-x);
+  width: var(--star-length);
+  height: 1.5px;
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgb(199 210 254 / 72%), #fff);
+  filter: drop-shadow(0 0 5px rgb(165 180 252 / 88%));
+  transform: translate3d(-5rem, -5rem, 0) rotate(42deg);
+  transform-origin: right center;
+  animation: orbit-star-fall var(--star-duration) linear var(--star-delay) infinite;
+}
+
+.orbit-shooting-star::after {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  clip-path: polygon(50% 0%, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0% 50%, 39% 38%);
+  background: #fff;
+  box-shadow: 0 0 9px rgb(224 231 255 / 96%);
+  content: "";
+  transform: translateY(-50%);
+}
+
+@keyframes orbit-star-fall {
+  0%, 62% {
+    opacity: 0;
+    transform: translate3d(-5rem, -5rem, 0) rotate(42deg);
+  }
+  66% {
+    opacity: var(--star-opacity);
+  }
+  86% {
+    opacity: 0;
+    transform: translate3d(8rem, 8rem, 0) rotate(42deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(8rem, 8rem, 0) rotate(42deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-shooting-star {
+    display: none;
+  }
+}
 button,
 input,
 select,
