@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { AuthShell } from './OrbitStarfield'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -28,10 +29,10 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-5">
+    <AuthShell>
       <form
         onSubmit={submit}
-        className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-slate-100 shadow-2xl backdrop-blur-xl"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-slate-100 shadow-2xl backdrop-blur-xl"
       >
         <div className="text-center">
           <h1 className="text-4xl font-extrabold text-white">Reset password</h1>
@@ -77,6 +78,6 @@ export function ForgotPasswordPage() {
           </Link>
         </p>
       </form>
-    </main>
+    </AuthShell>
   )
 }

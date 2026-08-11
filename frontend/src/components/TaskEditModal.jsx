@@ -1,8 +1,8 @@
 import { TaskAttachments } from './TaskAttachments'
 
 export function TaskEditModal({ form, members, files, onFormChange, onFilesChange, onClose, onSubmit }) {
-  return <div className="fixed inset-0 z-10 grid place-items-center bg-slate-950/35 p-5">
-    <form onSubmit={onSubmit} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+  return <div className="orbit-task-modal fixed inset-0 z-10 grid place-items-center p-5">
+    <form onSubmit={onSubmit} className="orbit-task-modal__card w-full max-w-lg rounded-2xl p-6 shadow-2xl">
       <h3 className="text-xl font-bold">Edit task</h3>
       <label className="mt-4 block text-sm">Title<input required value={form.title} onChange={(event) => onFormChange({ ...form, title: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
       <label className="mt-3 block text-sm">Description<textarea value={form.description} onChange={(event) => onFormChange({ ...form, description: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>

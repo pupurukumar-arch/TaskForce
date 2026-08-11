@@ -19,6 +19,8 @@ import { TaskBoardPage } from './components/TaskBoardPage'
 import { ProfilePage } from './components/ProfilePage'
 import { DeadlinesPage } from './components/DeadlinesPage'
 import { CalendarPage } from './components/CalendarPage'
+import { SoftboardPage } from './components/SoftboardPage'
+import { ProjectBriefPage } from './components/ProjectBriefPage'
 import { api, setToken } from './lib/api'
 
 function ProtectedApp() {
@@ -39,6 +41,7 @@ function ProtectedApp() {
     <Route path="/dashboard" element={<DashboardPage user={user} />} />
     <Route path="/deadlines" element={<DeadlinesPage user={user} />} />
     <Route path="/calendar" element={<CalendarPage user={user} />} />
+    <Route path="/softboard" element={<SoftboardPage user={user} />} />
     <Route path="/change-password" element={<ChangePasswordPage user={user} />} />
     <Route path="/projects/invitations/:invitationToken/accept" element={<InvitationAcceptancePage user={user} />} />
     <Route path="/projects/:projectId/members" element={<ProjectMembersPage user={user} />} />
@@ -47,6 +50,7 @@ function ProtectedApp() {
     <Route path="/projects/:projectId/activity" element={<ProjectActivityPage user={user} />} />
     <Route path="/projects/:projectId/notes" element={<ProjectNotesPage user={user} />} />
     <Route path="/projects/:projectId/progress" element={<ProjectProgressPage user={user} />} />
+    <Route path="/projects/:projectId/brief" element={<ProjectBriefPage user={user} />} />
     <Route path="/projects/:projectId/tasks/:taskId" element={<TaskDetailPage user={user} />} />
     <Route path="/projects/:projectId/tasks" element={<TaskBoardPage user={user} />} />
     <Route path="/notifications" element={<NotificationsPage user={user} />} />

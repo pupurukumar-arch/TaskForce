@@ -18,7 +18,9 @@ const errorHandler = (err, req, res, next) => {
           : 500;
   const isProduction = process.env.NODE_ENV === "production";
   const message =
-    statusCode === 500 && isProduction
+    err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE"
+      ? "Each attachment must be 1 MB or smaller"
+      : statusCode === 500 && isProduction
       ? "Internal server error"
       : err.message || "Internal server error";
 

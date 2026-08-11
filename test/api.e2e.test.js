@@ -162,6 +162,30 @@ test("unverified users cannot log in", async () => {
   assert.match(response.body.message, /verify your email/i);
 });
 
+test("unverified users can register again and receive a fresh verification token", async () => {
+  const originalId = unverifiedUser._id;
+  const originalPassword = unverifiedUser.password;
+
+  const response = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: unverifiedUser.email,
+      username: `${suffix}_unverified_retry`,
+      password: "ReplacementPassword123!",
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.match(response.body.message, /verification email has been resent/i);
+
+  const retriedUser = await User.findById(originalId);
+  assert.equal(retriedUser.isEmailVerified, false);
+  assert.equal(retriedUser.username, `${suffix}_unverified_retry`);
+  assert.notEqual(retriedUser.password, originalPassword);
+  assert.ok(retriedUser.emailVerificationToken);
+  assert.ok(retriedUser.emailVerificationExpiry > new Date());
+});
+
 test("authentication does not reveal whether an account exists", async () => {
   const unknownEmail = `${suffix}_unknown@example.com`;
   const loginResponse = await request("/auth/login", {
@@ -200,6 +224,50 @@ test("authentication validators require an eight-character password", async () =
   assert.equal(resetResponse.status, 422);
 });
 
+test("registration rejects object injection and unsafe username characters", async () => {
+  const objectInjectionResponse = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: `${suffix}_object_username@example.com`,
+      username: { $ne: null },
+      password: "TestPassword123!",
+    },
+  });
+  assert.equal(objectInjectionResponse.status, 422);
+
+  const unsafeCharacterResponse = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: `${suffix}_unsafe_username@example.com`,
+      username: `${suffix}$unsafe`,
+      password: "TestPassword123!",
+    },
+  });
+  assert.equal(unsafeCharacterResponse.status, 422);
+});
+
+test("failed verification delivery rolls back a new registration", async () => {
+  const email = `${suffix}_delivery_failure@example.com`;
+  process.env.TEST_EMAIL_BEHAVIOR = "fail";
+
+  try {
+    const response = await request("/auth/register", {
+      method: "POST",
+      body: {
+        email,
+        username: `${suffix}deliveryfailure`,
+        password: "TestPassword123!",
+      },
+    });
+
+    assert.equal(response.status, 502);
+    assert.equal(await User.exists({ email }), null);
+  } finally {
+    delete process.env.TEST_EMAIL_BEHAVIOR;
+    await User.deleteMany({ email });
+  }
+});
+
 test("project admin can create a project and add a member", async () => {
   const createProject = await request("/projects", {
     method: "POST",
@@ -208,6 +276,12 @@ test("project admin can create a project and add a member", async () => {
   });
   assert.equal(createProject.status, 201);
   projectId = createProject.body.data._id;
+
+  const creatorMembership = await ProjectMember.findOne({
+    project: projectId,
+    user: admin._id,
+  });
+  assert.equal(creatorMembership?.role, "admin");
 
   const addMember = await request(`/projects/${projectId}/members`, {
     method: "POST",
@@ -336,6 +410,17 @@ test("a member submits an assigned task and an admin approves it", async () => {
     reviewNotification,
     "project admin should be notified when work is submitted",
   );
+
+  const cannotMoveReviewTaskToTodo = await request(
+    `/tasks/${projectId}/t/${taskId}`,
+    {
+      method: "PUT",
+      token: adminToken,
+      body: { status: "todo" },
+    },
+  );
+  assert.equal(cannotMoveReviewTaskToTodo.status, 400);
+  assert.match(cannotMoveReviewTaskToTodo.body.message, /under review/i);
 
   const approveTask = await request(`/tasks/${projectId}/t/${taskId}/review`, {
     method: "POST",
@@ -545,6 +630,29 @@ test("a registered user can accept a valid invitation for their email", async ()
     },
   );
   assert.equal(acceptedAgain.status, 400);
+});
+
+test("sensitive authentication routes share a 30-request limiter", async () => {
+  let limitedResponse;
+
+  for (let attempt = 0; attempt < 31; attempt += 1) {
+    const response = await request("/auth/login", {
+      method: "POST",
+      body: {},
+    });
+
+    if (response.status === 429) {
+      limitedResponse = response.body;
+      break;
+    }
+  }
+
+  assert.ok(limitedResponse);
+  assert.equal(limitedResponse.statusCode, 429);
+  assert.equal(
+    limitedResponse.message,
+    "Too many authentication requests. Please try again in 15 minutes.",
+  );
 });
 
 test("API rate limiting returns a JSON 429 response", async () => {

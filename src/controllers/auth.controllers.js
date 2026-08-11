@@ -38,22 +38,31 @@ const refreshTokenCookieOptions = {
 
 const registerUser = asyncHandler(async (req, res) => {
   const { email, username, password, fullName } = req.body;
+  const normalizedEmail = email.toLowerCase();
+  const normalizedUsername = String(username);
 
-  const existedUser = await User.findOne({
-    $or: [{ username }, { email }],
-  });
+  const existingEmailUser = await User.findOne({ email: normalizedEmail });
+  const existingUsernameUser = await User.findOne({ username: normalizedUsername });
 
-  if (existedUser) {
+  const canRetryUnverifiedRegistration =
+    existingEmailUser && !existingEmailUser.isEmailVerified;
+
+  if (
+    (existingEmailUser && !canRetryUnverifiedRegistration) ||
+    (existingUsernameUser &&
+      existingUsernameUser._id.toString() !== existingEmailUser?._id.toString())
+  ) {
     throw new ApiError(409, "User with email or username already exists", []);
   }
 
-  const user = await User.create({
-    email,
-    password,
-    username,
-    fullName,
-    isEmailVerified: false,
-  });
+  const isRegistrationRetry = Boolean(canRetryUnverifiedRegistration);
+  const user = existingEmailUser || new User();
+
+  user.email = normalizedEmail;
+  user.username = normalizedUsername;
+  user.password = password;
+  if (fullName !== undefined) user.fullName = fullName;
+  user.isEmailVerified = false;
 
   const { unHashedToken, hashedToken, tokenExpiry } =
     user.generateTemporaryToken();
@@ -61,16 +70,30 @@ const registerUser = asyncHandler(async (req, res) => {
   user.emailVerificationToken = hashedToken;
   user.emailVerificationExpiry = tokenExpiry;
 
-  await user.save({ validateBeforeSave: false });
+  await user.save();
 
-  await sendEmail({
-    email: user?.email,
-    subject: "Please verify your email",
-    mailgenContent: emailVerificationMailgenContent(
-      user.username,
-      `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
-    ),
-  });
+  try {
+    await sendEmail({
+      email: user?.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.username,
+        `${(process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0]}/verify-email/${unHashedToken}`,
+      ),
+    });
+  } catch (error) {
+    try {
+      if (!isRegistrationRetry) {
+        await User.deleteOne({ _id: user._id, isEmailVerified: false });
+      }
+    } catch (cleanupError) {
+      console.error("Failed to roll back an undeliverable registration", {
+        userId: user._id.toString(),
+        code: cleanupError?.code,
+      });
+    }
+    throw error;
+  }
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
@@ -81,12 +104,14 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   return res
-    .status(201)
+    .status(isRegistrationRetry ? 200 : 201)
     .json(
       new ApiResponse(
-        200,
+        isRegistrationRetry ? 200 : 201,
         { user: createdUser },
-        "User registered successfully and verification email has been sent on your email",
+        isRegistrationRetry
+          ? "Verification email has been resent. Please verify your email before signing in."
+          : "User registered successfully and verification email has been sent on your email",
       ),
     );
 });

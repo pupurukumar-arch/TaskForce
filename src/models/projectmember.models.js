@@ -22,6 +22,9 @@ const projectMemberSchema = new Schema(
   { timestamps: true },
 );
 
+// Speeds role checks and prevents the same user from joining a project twice.
+projectMemberSchema.index({ project: 1, user: 1 }, { unique: true });
+
 export const ProjectMember = mongoose.model(
   "ProjectMember",
   projectMemberSchema,

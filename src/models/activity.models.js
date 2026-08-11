@@ -28,4 +28,7 @@ const activitySchema = new Schema(
   { timestamps: true },
 );
 
+// Matches a project's activity timeline, newest first.
+activitySchema.index({ project: 1, createdAt: -1 });
+
 export const Activity = mongoose.model("Activity", activitySchema);

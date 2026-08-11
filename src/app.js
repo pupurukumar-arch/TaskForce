@@ -8,6 +8,11 @@ import { apiRateLimiter } from "./middlewares/rate-limit.middleware.js";
 import { enforceTrustedOrigin } from "./middlewares/security.middleware.js";
 
 const app = express();
+// Vercel forwards the original client IP. Trust only its immediate proxy so
+// rate limits use the visitor IP rather than the platform proxy address.
+if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
@@ -60,6 +65,7 @@ import projectRouter from "./routes/project.routes.js";
 import taskRouter from "./routes/task.routes.js";
 import noteRouter from "./routes/note.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import softboardRouter from "./routes/softboard.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
@@ -68,6 +74,7 @@ app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/notes", noteRouter);
 app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/softboard", softboardRouter);
 
 app.get("/", (req, res) => {
   res.send("Welcome to basecampy");

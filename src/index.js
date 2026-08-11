@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import app from "./app.js";
 import connectDB, { assertSeparateTestDatabase } from "./db/index.js";
+import { connectRedis } from "./config/redis.js";
 
 dotenv.config({
   path: "./.env",
@@ -16,10 +16,11 @@ if (process.env.NODE_ENV === "production") {
     "CORS_ORIGIN",
     "FORGOT_PASSWORD_REDIRECT_URL",
     "PROJECT_INVITE_REDIRECT_URL",
-    "MAILTRAP_SMTP_HOST",
-    "MAILTRAP_SMTP_PORT",
-    "MAILTRAP_SMTP_USER",
-    "MAILTRAP_SMTP_PASS",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
     "AWS_REGION",
     "AWS_S3_BUCKET",
     "AWS_ACCESS_KEY_ID",
@@ -52,8 +53,9 @@ if (!databaseUri) {
   process.exit(1);
 }
 
-connectDB(databaseUri)
-  .then(() => {
+Promise.all([connectDB(databaseUri), connectRedis()])
+  .then(async () => {
+    const { default: app } = await import("./app.js");
     app.listen(port, () => {
       console.log(`Example app listening on port http://localhost:${port}`);
     });

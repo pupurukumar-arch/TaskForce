@@ -202,6 +202,22 @@ const updateTask = asyncHandler(async (req, res) => {
 
   const previousStatus = task.status;
   const previousAssignee = task.assignedTo?.toString();
+  if (task.status === "in_review" && status !== undefined && status !== "in_review") {
+    throw new ApiError(
+      400,
+      "Tasks under review must be approved or sent back by a project administrator",
+    );
+  }
+  if (
+    status === "in_review" &&
+    task.assignedTo?.toString() === req.user._id.toString() &&
+    [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN].includes(req.user.role)
+  ) {
+    throw new ApiError(
+      400,
+      "Project administrators cannot submit their own tasks for review",
+    );
+  }
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
   if (assignedTo !== undefined) task.assignedTo = assignedTo || undefined;
@@ -256,6 +272,15 @@ const submitTaskForReview = asyncHandler(async (req, res) => {
   await task.save();
 
   await recordActivity({ project: task.project, actor: req.user._id, type: "task_submitted_for_review", message: `Submitted task for review: ${task.title}`, details: { task: task._id } });
+  const submittedComment = req.body?.comment?.trim();
+  if (submittedComment) {
+    const comment = await TaskComment.create({
+      task: task._id,
+      user: req.user._id,
+      content: submittedComment,
+    });
+    await recordActivity({ project: task.project, actor: req.user._id, type: "task_comment_added", message: `Added a submission comment to task: ${task.title}`, details: { task: task._id, comment: comment._id } });
+  }
   const managers = await ProjectMember.find({
     project: task.project,
     role: { $in: [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN] },

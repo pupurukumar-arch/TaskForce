@@ -72,4 +72,9 @@ const taskSchema = new Schema(
   { timestamps: true },
 );
 
+// Matches the project board query: filter by project, newest task first.
+taskSchema.index({ project: 1, createdAt: -1 });
+// Matches personal deadline and calendar queries for an assignee, ordered by date.
+taskSchema.index({ assignedTo: 1, dueDate: 1 });
+
 export const Task = mongoose.model("Task", taskSchema);

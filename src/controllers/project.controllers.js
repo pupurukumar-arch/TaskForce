@@ -2,7 +2,7 @@ import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
-import { deleteTaskAttachments } from "../utils/s3.js";
+import { deleteTaskAttachments, getAttachmentUrl, uploadProjectBrief } from "../utils/s3.js";
 import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
 import { TaskComment } from "../models/taskcomment.models.js";
@@ -14,10 +14,11 @@ import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
-import { getTaskSummaryForUser } from "../utils/task-summary.js";
 import { recordActivity } from "../utils/activity.js";
 import { createNotification } from "../utils/notification.js";
 import { projectInvitationMailgenContent, sendEmail } from "../utils/mail.js";
+import { parseProjectBriefBufferForRag } from "../services/project-brief-rag-parser.service.js";
+import { invalidateProjectPulseContext } from "../services/project-pulse.service.js";
 import crypto from "crypto";
 
 const getProjects = asyncHandler(async (req, res) => {
@@ -84,9 +85,16 @@ const getProjectById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project not found");
   }
 
+  const data = project.toObject();
+  if (data.brief?.key) {
+    data.brief.url = await getAttachmentUrl(data.brief.key, {
+      mimetype: data.brief.mimetype,
+      name: data.brief.name,
+    });
+  }
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Project fetched successfully"));
+    .json(new ApiResponse(200, data, "Project fetched successfully"));
 });
 
 const getProjectProgress = asyncHandler(async (req, res) => {
@@ -133,24 +141,60 @@ const getProjectProgress = asyncHandler(async (req, res) => {
 const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
-  const project = await Project.create({
-    name,
-    description,
-    createdBy: new mongoose.Types.ObjectId(req.user._id),
-  });
+  const brief = req.file ? await uploadProjectBrief(req.file) : undefined;
+  const parsedBriefContext = req.file
+    ? await parseProjectBriefBufferForRag({
+      buffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+      name: req.file.originalname,
+    })
+    : undefined;
+  const hasBriefContext = Boolean(
+    parsedBriefContext?.text || parsedBriefContext?.tables?.length || parsedBriefContext?.imageInsights,
+  );
+  const session = await mongoose.startSession();
+  let project;
 
-  await ProjectMember.create({
-    user: new mongoose.Types.ObjectId(req.user._id),
-    project: new mongoose.Types.ObjectId(project._id),
-    role: UserRolesEnum.ADMIN,
-  });
+  try {
+    await session.withTransaction(async () => {
+      [project] = await Project.create(
+        [{
+          name,
+          description,
+          createdBy: new mongoose.Types.ObjectId(req.user._id),
+          brief,
+          ...(hasBriefContext && {
+            briefContext: {
+              text: parsedBriefContext.text,
+              tables: parsedBriefContext.tables,
+              imageInsights: parsedBriefContext.imageInsights,
+              sourceUpdatedAt: new Date(),
+            },
+          }),
+        }],
+        { session },
+      );
 
-  await recordActivity({
-    project: project._id,
-    actor: req.user._id,
-    type: "project_created",
-    message: `Created project: ${project.name}`,
-  });
+      await ProjectMember.create(
+        [{
+          user: new mongoose.Types.ObjectId(req.user._id),
+          project: project._id,
+          role: UserRolesEnum.ADMIN,
+        }],
+        { session },
+      );
+
+      await recordActivity({
+        project: project._id,
+        actor: req.user._id,
+        type: "project_created",
+        message: `Created project: ${project.name}`,
+        session,
+      });
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(201)
@@ -164,8 +208,8 @@ const updateProject = asyncHandler(async (req, res) => {
   const project = await Project.findByIdAndUpdate(
     projectId,
     {
-      name,
-      description,
+      ...(name !== undefined && { name }),
+      ...(description !== undefined && { description }),
     },
     { new: true },
   );
@@ -173,9 +217,36 @@ const updateProject = asyncHandler(async (req, res) => {
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
+  await invalidateProjectPulseContext(projectId);
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project updated successfully"));
+});
+
+const uploadProjectBriefFile = asyncHandler(async (req, res) => {
+  if (!req.file) throw new ApiError(400, "Choose a Project Brief file first");
+  const project = await Project.findById(req.params.projectId);
+  if (!project) throw new ApiError(404, "Project not found");
+  const previousBrief = project.brief;
+  project.brief = await uploadProjectBrief(req.file);
+  const parsedBriefContext = await parseProjectBriefBufferForRag({
+    buffer: req.file.buffer,
+    mimetype: req.file.mimetype,
+    name: req.file.originalname,
+  });
+  const hasBriefContext = Boolean(
+    parsedBriefContext?.text || parsedBriefContext?.tables?.length || parsedBriefContext?.imageInsights,
+  );
+  project.briefContext = hasBriefContext ? {
+    text: parsedBriefContext.text,
+    tables: parsedBriefContext.tables,
+    imageInsights: parsedBriefContext.imageInsights,
+    sourceUpdatedAt: new Date(),
+  } : undefined;
+  await project.save();
+  await invalidateProjectPulseContext(project._id);
+  if (previousBrief?.key) await deleteTaskAttachments([previousBrief]);
+  return res.status(200).json(new ApiResponse(200, project, "Project Brief uploaded and indexed for Project Pulse"));
 });
 
 const deleteProject = asyncHandler(async (req, res) => {
@@ -189,7 +260,10 @@ const deleteProject = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: projectId }).select("_id attachments");
   const taskIds = tasks.map((task) => task._id);
 
-  await deleteTaskAttachments(tasks.flatMap((task) => task.attachments || []));
+  await deleteTaskAttachments([
+    ...tasks.flatMap((task) => task.attachments || []),
+    ...(project.brief?.key ? [project.brief] : []),
+  ]);
 
   await Promise.all([
     Subtask.deleteMany({ task: { $in: taskIds } }),
@@ -218,9 +292,16 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exists");
   }
 
-  const project = await Project.findById(projectId).select("name");
+  const project = await Project.findById(projectId).select("name createdBy");
   if (!project) {
     throw new ApiError(404, "Project not found");
+  }
+
+  if (
+    project.createdBy.toString() === user._id.toString() &&
+    role !== UserRolesEnum.ADMIN
+  ) {
+    throw new ApiError(409, "The project creator must remain an Admin; a project must have at least one Admin");
   }
 
   const existingMembership = await ProjectMember.exists({
@@ -431,15 +512,57 @@ const getMemberTaskSummary = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project member not found");
   }
 
-  const summary = await getTaskSummaryForUser(projectMember.user._id);
+  const tasks = await Task.find({
+    project: req.params.projectId,
+    assignedTo: projectMember.user._id,
+  })
+    .select("title description status dueDate priority difficulty")
+    .sort({ dueDate: 1, createdAt: -1 })
+    .lean();
+  const statuses = ["todo", "in_progress", "in_review", "done"];
+  const tasksByStatus = Object.fromEntries(
+    statuses.map((status) => [
+      status,
+      tasks.filter((task) => task.status === status),
+    ]),
+  );
 
   return res.status(200).json(
     new ApiResponse(
       200,
-      { member: projectMember.user, ...summary },
+      {
+        member: projectMember.user,
+        totalTasks: tasks.length,
+        tasksByStatus,
+      },
       "Member task summary fetched successfully",
     ),
   );
+});
+
+const sendMemberTaskReminder = asyncHandler(async (req, res) => {
+  const task = await Task.findOne({
+    _id: req.params.taskId,
+    project: req.params.projectId,
+    assignedTo: req.params.userId,
+    status: { $in: ["todo", "in_progress"] },
+  });
+
+  if (!task) {
+    throw new ApiError(404, "An open task for this member was not found");
+  }
+
+  await createNotification({
+    recipient: task.assignedTo,
+    project: task.project,
+    task: task._id,
+    type: "task_reminder",
+    message: `Reminder from your project admin: ${task.title}`,
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, "Reminder sent to the member"));
 });
 
 const updateMemberRole = asyncHandler(async (req, res) => {
@@ -457,6 +580,14 @@ const updateMemberRole = asyncHandler(async (req, res) => {
 
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
+  }
+
+  const project = await Project.findById(projectId).select("createdBy");
+  if (
+    project?.createdBy.toString() === userId &&
+    newRole !== UserRolesEnum.ADMIN
+  ) {
+    throw new ApiError(409, "The project creator must remain an Admin; a project must have at least one Admin");
   }
 
   if (
@@ -569,7 +700,9 @@ export {
   getProjectById,
   getProjectMembers,
   getMemberTaskSummary,
+  sendMemberTaskReminder,
   updateProject,
+  uploadProjectBriefFile,
   deleteProject,
   updateMemberRole,
 };
