@@ -390,6 +390,36 @@ test("task priority and due-date summary work", async () => {
   assert.equal(updateTask.body.data.priority, "low");
 });
 
+test("project board bootstrap returns tasks, members, due summary, and caller role", async () => {
+  const response = await request(`/tasks/${projectId}/board`, {
+    token: memberToken,
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(response.body.data.tasks));
+  assert.ok(Array.isArray(response.body.data.members));
+  assert.equal(response.body.data.role, "member");
+  assert.equal(response.body.data.dueSummary.counts.dueToday, 1);
+  assert.ok(response.body.data.tasks.some((taskItem) => taskItem._id === taskId.toString()));
+  assert.ok(response.body.data.members.some((membership) => membership.user._id === member._id.toString()));
+});
+
+test("project board bootstrap rejects non-members", async () => {
+  const response = await request(`/tasks/${projectId}/board`, {
+    token: outsiderToken,
+  });
+  assert.equal(response.status, 400);
+});
+
+test("unread notification count returns a compact numeric response", async () => {
+  const response = await request("/notifications/unread-count", {
+    token: memberToken,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(typeof response.body.data.count, "number");
+  assert.ok(response.body.data.count >= 1);
+});
+
 test("a member submits an assigned task and an admin approves it", async () => {
   const submitForReview = await request(
     `/tasks/${projectId}/t/${taskId}/submit-review`,

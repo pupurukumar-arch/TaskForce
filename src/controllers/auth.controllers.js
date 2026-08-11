@@ -11,9 +11,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { getTaskSummaryForUser } from "../utils/task-summary.js";
 
-const generateAccessAndRefreshTokens = async (userId) => {
+const generateAccessAndRefreshTokens = async (user) => {
   try {
-    const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
@@ -26,6 +25,19 @@ const generateAccessAndRefreshTokens = async (userId) => {
       "Something went wrong while generating access token",
     );
   }
+};
+
+const toPublicUser = (user) => {
+  const publicUser = user.toObject();
+  for (const field of [
+    "password",
+    "refreshToken",
+    "emailVerificationToken",
+    "emailVerificationExpiry",
+    "forgotPasswordToken",
+    "forgotPasswordExpiry",
+  ]) delete publicUser[field];
+  return publicUser;
 };
 
 const refreshTokenCookieOptions = {
@@ -139,13 +151,8 @@ const login = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Please verify your email before logging in");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id,
-  );
-
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
-  );
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user);
+  const loggedInUser = toPublicUser(user);
 
   return res
     .status(200)
@@ -304,10 +311,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(user._id);
-
-    user.refreshToken = newRefreshToken;
-    await user.save();
+      await generateAccessAndRefreshTokens(user);
 
     return res
       .status(200)

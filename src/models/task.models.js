@@ -76,5 +76,7 @@ const taskSchema = new Schema(
 taskSchema.index({ project: 1, createdAt: -1 });
 // Matches personal deadline and calendar queries for an assignee, ordered by date.
 taskSchema.index({ assignedTo: 1, dueDate: 1 });
+// Supports project-specific due-date summaries without scanning every task.
+taskSchema.index({ project: 1, assignedTo: 1, dueDate: 1, status: 1 });
 
 export const Task = mongoose.model("Task", taskSchema);

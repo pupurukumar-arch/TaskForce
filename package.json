@@ -9,7 +9,9 @@
     "start": "node src/index.js",
     "test": "NODE_ENV=test node --test --test-concurrency=1 test/*.test.js",
     "test:e2e": "playwright test",
-    "check": "npm test && npm --prefix frontend run lint && npm --prefix frontend test && npm --prefix frontend run build && npm run test:e2e"
+    "check": "npm test && npm --prefix frontend run lint && npm --prefix frontend test && npm --prefix frontend run build && npm run test:e2e",
+    "docker:build": "docker build -t taskforce-api:local .",
+    "docker:up": "docker compose up --build"
   },
   "keywords": [
     "project-management",

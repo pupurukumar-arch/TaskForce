@@ -18,23 +18,18 @@ export function ProjectSettingsPage({ user }) {
     setError("");
 
     try {
-      const [project, members] = await Promise.all([
-        api(`/projects/${projectId}`),
-        api(`/projects/${projectId}/members`),
-      ]);
+      const project = await api(`/projects/${projectId}`);
       setForm({
         name: project.name || "",
         description: project.description || "",
       });
-      setRole(
-        members.find((member) => member.user._id === user._id)?.role || "",
-      );
+      setRole(project.role || "");
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, user._id]);
+  }, [projectId]);
 
   useEffect(() => {
     loadProject();
@@ -124,6 +119,12 @@ export function ProjectSettingsPage({ user }) {
 
       {!isLoading && isAdmin && (
         <>
+          <form onSubmit={saveProject} className="mt-6 max-w-2xl rounded-2xl border border-slate-200 bg-[#fffdf9] p-6 shadow-sm">
+            <h3 className="font-semibold text-slate-800">Project details</h3>
+            <label className="mt-4 block text-sm font-medium text-slate-700">Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 p-3" /></label>
+            <label className="mt-4 block text-sm font-medium text-slate-700">Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 p-3" /></label>
+            <button disabled={isSaving} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{isSaving ? "Saving…" : "Save project"}</button>
+          </form>
           <section className="mt-6 max-w-2xl rounded-2xl border border-slate-200 bg-[#fffdf9] p-6 shadow-sm shadow-slate-200/40">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Project management

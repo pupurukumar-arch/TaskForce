@@ -23,7 +23,8 @@ const ensureS3Settings = () => {
   }
 };
 
-const getS3Client = () => new S3Client({
+let s3Client;
+const getS3Client = () => s3Client ||= new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -134,6 +135,23 @@ export const withAttachmentUrls = async (task) => {
       url: attachment.key ? await getAttachmentUrl(attachment.key) : attachment.url,
     })),
   );
+  return taskData;
+};
+
+// The board only renders the newest evidence link while a task is in review.
+// Avoid signing every historical attachment before the board can appear.
+export const withBoardAttachmentUrl = async (task) => {
+  const taskData = task.toObject ? task.toObject() : task;
+  const attachments = taskData.attachments || [];
+  if (taskData.status !== "in_review" || !attachments.length) return taskData;
+
+  const latestIndex = attachments.length - 1;
+  taskData.attachments = [...attachments];
+  const latest = taskData.attachments[latestIndex];
+  taskData.attachments[latestIndex] = {
+    ...latest,
+    url: latest.key ? await getAttachmentUrl(latest.key) : latest.url,
+  };
   return taskData;
 };
 

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-build-and-containerize:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_dev
+      TEST_MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_test
+      ACCESS_TOKEN_SECRET: ci-access-token-secret-at-least-32-characters
+      ACCESS_TOKEN_EXPIRY: 1d
+      REFRESH_TOKEN_SECRET: ci-refresh-token-secret-at-least-32-characters
+      REFRESH_TOKEN_EXPIRY: 10d
+      CORS_ORIGIN: http://127.0.0.1:5174
+      FORGOT_PASSWORD_REDIRECT_URL: http://127.0.0.1:5174/reset-password
+      PROJECT_INVITE_REDIRECT_URL: http://127.0.0.1:5174/register
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Run backend tests
+        run: npm test
+
+      - name: Lint, test, and build frontend
+        run: |
+          npm run lint --prefix frontend
+          npm test --prefix frontend
+          npm run build --prefix frontend
+
+      - name: Validate OpenAPI document
+        run: >-
+          node -e "import('./src/docs/openapi.js').then(({ openapiSpecification: spec }) => { if (spec.openapi !== '3.0.3' || !Object.keys(spec.paths).length) process.exit(1) })"
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser workflow
+        run: npm run test:e2e
+
+      - name: Verify backend Docker image
+        run: docker build --tag taskforce-api:ci .
