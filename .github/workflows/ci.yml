@@ -8,20 +8,10 @@ on:
 jobs:
   test-build-and-containerize:
     runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
     env:
       NODE_ENV: test
-      MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_dev
-      TEST_MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_test
+      MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_dev?replicaSet=rs0
+      TEST_MONGO_URI: mongodb://127.0.0.1:27017/taskforce_ci_test?replicaSet=rs0
       ACCESS_TOKEN_SECRET: ci-access-token-secret-at-least-32-characters
       ACCESS_TOKEN_EXPIRY: 1d
       REFRESH_TOKEN_SECRET: ci-refresh-token-secret-at-least-32-characters
@@ -48,6 +38,13 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+
+      - name: Start MongoDB replica set
+        run: |
+          docker run --detach --name taskforce-mongo --publish 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          until docker exec taskforce-mongo mongosh --quiet --eval "db.runCommand({ ping: 1 }).ok"; do sleep 2; done
+          docker exec taskforce-mongo mongosh --quiet --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: '127.0.0.1:27017'}]})"
+          until docker exec taskforce-mongo mongosh --quiet --eval "quit(rs.status().myState === 1 ? 0 : 1)"; do sleep 2; done
 
       - name: Run backend tests
         run: npm test
