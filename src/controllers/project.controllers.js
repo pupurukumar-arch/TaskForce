@@ -86,7 +86,12 @@ const getProjectById = asyncHandler(async (req, res) => {
   }
 
   const data = project.toObject();
-  if (data.brief?.key) data.brief.url = await getAttachmentUrl(data.brief.key);
+  if (data.brief?.key) {
+    data.brief.url = await getAttachmentUrl(data.brief.key, {
+      mimetype: data.brief.mimetype,
+      name: data.brief.name,
+    });
+  }
   return res
     .status(200)
     .json(new ApiResponse(200, data, "Project fetched successfully"));
@@ -255,7 +260,10 @@ const deleteProject = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: projectId }).select("_id attachments");
   const taskIds = tasks.map((task) => task._id);
 
-  await deleteTaskAttachments(tasks.flatMap((task) => task.attachments || []));
+  await deleteTaskAttachments([
+    ...tasks.flatMap((task) => task.attachments || []),
+    ...(project.brief?.key ? [project.brief] : []),
+  ]);
 
   await Promise.all([
     Subtask.deleteMany({ task: { $in: taskIds } }),

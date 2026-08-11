@@ -74,14 +74,28 @@ export const uploadProjectBrief = async (file) => {
 export const uploadTaskAttachments = (files = []) =>
   Promise.all(files.map(uploadTaskAttachment));
 
-export const getAttachmentUrl = async (key) => {
+const attachmentDisposition = (name, mimetype) => {
+  const disposition = mimetype === "application/pdf" ? "inline" : "attachment";
+  if (!name) return disposition;
+
+  const safeName = path.basename(name).replace(/[\r\n"]/g, "_");
+  return `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(safeName)}`;
+};
+
+export const getAttachmentUrl = async (key, { mimetype, name } = {}) => {
   if (isTestEnvironment) return `https://example.test/attachments/${encodeURIComponent(key)}`;
 
   ensureS3Settings();
   try {
+    const command = new GetObjectCommand({
+      Bucket: bucket(),
+      Key: key,
+      ...(mimetype && { ResponseContentType: mimetype }),
+      ...(name && { ResponseContentDisposition: attachmentDisposition(name, mimetype) }),
+    });
     return await getSignedUrl(
       getS3Client(),
-      new GetObjectCommand({ Bucket: bucket(), Key: key }),
+      command,
       { expiresIn: 300 },
     );
   } catch (error) {
