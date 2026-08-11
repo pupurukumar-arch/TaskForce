@@ -39,9 +39,10 @@ const refreshTokenCookieOptions = {
 const registerUser = asyncHandler(async (req, res) => {
   const { email, username, password, fullName } = req.body;
   const normalizedEmail = email.toLowerCase();
+  const normalizedUsername = String(username);
 
   const existingEmailUser = await User.findOne({ email: normalizedEmail });
-  const existingUsernameUser = await User.findOne({ username });
+  const existingUsernameUser = await User.findOne({ username: normalizedUsername });
 
   const canRetryUnverifiedRegistration =
     existingEmailUser && !existingEmailUser.isEmailVerified;
@@ -58,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = existingEmailUser || new User();
 
   user.email = normalizedEmail;
-  user.username = username;
+  user.username = normalizedUsername;
   user.password = password;
   if (fullName !== undefined) user.fullName = fullName;
   user.isEmailVerified = false;

@@ -8,14 +8,27 @@ const MAX_IMAGE_BYTES = 1_500_000;
 
 const compactText = (value, max = MAX_TEXT_CHARS) =>
   String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
-const decodeHtml = (value) => String(value || "")
-  .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
-  .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const HTML_ENTITIES = Object.freeze({
+  "&nbsp;": " ",
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+});
+const decodeHtml = (value) => String(value || "").replace(
+  /&(nbsp|amp|lt|gt|quot|#39);/g,
+  (entity) => HTML_ENTITIES[entity],
+);
 const htmlText = (value) => compactText(decodeHtml(String(value || "").replace(/<[^>]+>/g, " ")), 800);
+const escapeMarkdownCell = (value) => compactText(value, 240).replace(
+  /[\\|]/g,
+  (character) => `\\${character}`,
+);
 
 const rowsToMarkdown = (rows) => rows
   .filter((row) => row.length)
-  .map((row) => `| ${row.map((cell) => compactText(cell, 240).replace(/\|/g, "\\|")).join(" | ")} |`)
+  .map((row) => `| ${row.map(escapeMarkdownCell).join(" | ")} |`)
   .join("\n");
 
 const docxTablesToMarkdown = (html) => {
@@ -107,3 +120,8 @@ export const parseProjectBriefForRag = async (brief) => {
     return { filename: brief.name, unavailable: true };
   }
 };
+
+export const projectBriefTextSafety = Object.freeze({
+  decodeHtml,
+  escapeMarkdownCell,
+});

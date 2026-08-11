@@ -224,6 +224,28 @@ test("authentication validators require an eight-character password", async () =
   assert.equal(resetResponse.status, 422);
 });
 
+test("registration rejects object injection and unsafe username characters", async () => {
+  const objectInjectionResponse = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: `${suffix}_object_username@example.com`,
+      username: { $ne: null },
+      password: "TestPassword123!",
+    },
+  });
+  assert.equal(objectInjectionResponse.status, 422);
+
+  const unsafeCharacterResponse = await request("/auth/register", {
+    method: "POST",
+    body: {
+      email: `${suffix}_unsafe_username@example.com`,
+      username: `${suffix}$unsafe`,
+      password: "TestPassword123!",
+    },
+  });
+  assert.equal(unsafeCharacterResponse.status, 422);
+});
+
 test("failed verification delivery rolls back a new registration", async () => {
   const email = `${suffix}_delivery_failure@example.com`;
   process.env.TEST_EMAIL_BEHAVIOR = "fail";
