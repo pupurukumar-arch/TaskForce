@@ -12,8 +12,59 @@ import { createNotification } from "../utils/notification.js";
 import {
   deleteTaskAttachments,
   uploadTaskAttachments,
+  withBoardAttachmentUrl,
   withAttachmentUrls,
 } from "../utils/s3.js";
+
+export const buildDueSummary = (tasks, userId, now = new Date()) => {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const endOfWeek = new Date(startOfToday);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  const openTasks = tasks
+    .filter((task) =>
+      task.assignedTo?._id?.toString?.() === userId.toString() ||
+      task.assignedTo?.toString?.() === userId.toString())
+    .filter((task) => task.status !== "done" && task.dueDate)
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  const dueToday = openTasks.filter((task) => task.dueDate >= startOfToday && task.dueDate < startOfTomorrow);
+  const dueThisWeek = openTasks.filter((task) => task.dueDate >= startOfTomorrow && task.dueDate < endOfWeek);
+  const overdue = openTasks.filter((task) => task.dueDate < startOfToday);
+
+  return {
+    dueToday,
+    dueThisWeek,
+    overdue,
+    counts: {
+      dueToday: dueToday.length,
+      dueThisWeek: dueThisWeek.length,
+      overdue: overdue.length,
+    },
+  };
+};
+
+const getProjectBoard = asyncHandler(async (req, res) => {
+  const [taskDocuments, members] = await Promise.all([
+    Task.find({ project: req.params.projectId })
+      .populate("assignedTo", "avatar username fullName")
+      .sort({ createdAt: -1 })
+      .lean(),
+    ProjectMember.find({ project: req.params.projectId })
+      .select("project user role createdAt updatedAt -_id")
+      .populate("user", "username fullName avatar")
+      .lean(),
+  ]);
+  const tasks = await Promise.all(taskDocuments.map(withBoardAttachmentUrl));
+
+  return res.status(200).json(new ApiResponse(200, {
+    tasks,
+    members,
+    dueSummary: buildDueSummary(tasks, req.user._id),
+    role: req.user.role,
+  }, "Project board fetched successfully"));
+});
 
 const getTasks = asyncHandler(async (req, res) => {
   const tasks = await Task.find({ project: req.params.projectId })
@@ -391,6 +442,7 @@ export {
   getMyDeadlines,
   getMyCalendar,
   getTasks,
+  getProjectBoard,
   updateSubTask,
   updateTask,
 };

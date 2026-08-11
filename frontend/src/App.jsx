@@ -21,14 +21,14 @@ import { DeadlinesPage } from './components/DeadlinesPage'
 import { CalendarPage } from './components/CalendarPage'
 import { SoftboardPage } from './components/SoftboardPage'
 import { ProjectBriefPage } from './components/ProjectBriefPage'
-import { api, setToken } from './lib/api'
+import { bootstrapCurrentUser, setToken } from './lib/api'
 
 function ProtectedApp() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api('/auth/current-user', { method: 'POST' })
+    bootstrapCurrentUser()
       .then(setUser)
       .catch(() => setToken(''))
       .finally(() => setLoading(false))

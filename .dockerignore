@@ -1,0 +1,11 @@
+node_modules
+frontend
+test
+test-results
+playwright-report
+.git
+.github
+.vercel
+.env*
+*.md
+tools

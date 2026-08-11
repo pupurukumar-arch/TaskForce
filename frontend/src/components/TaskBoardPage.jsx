@@ -55,15 +55,11 @@ export function TaskBoardPage({ user }) {
 
   const load = useCallback(
     () =>
-      Promise.all([
-        api(`/tasks/${projectId}`),
-        api(`/projects/${projectId}/members`),
-        api(`/tasks/${projectId}/due-summary`),
-      ])
-        .then(([taskData, memberData, dueData]) => {
-          setTasks(taskData);
-          setMembers(memberData);
-          setDueSummary(dueData);
+      api(`/tasks/${projectId}/board`)
+        .then((board) => {
+          setTasks(board.tasks);
+          setMembers(board.members);
+          setDueSummary(board.dueSummary);
         })
         .catch((requestError) => setError(requestError.message)),
     [projectId],

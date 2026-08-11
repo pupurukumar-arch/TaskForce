@@ -8,8 +8,11 @@ let appModule;
 export default async function handler(req, res) {
   databaseConnection ||= connectDB(process.env.MONGO_URI);
   if (process.env.REDIS_URL) redisConnection ||= connectRedis();
-  await Promise.all([databaseConnection, redisConnection]);
   appModule ||= import("../src/app.js");
-  const { default: app } = await appModule;
+  const [, , { default: app }] = await Promise.all([
+    databaseConnection,
+    redisConnection,
+    appModule,
+  ]);
   return app(req, res);
 }

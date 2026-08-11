@@ -91,7 +91,7 @@ const openapiSpecification = {
       post: authenticated("Create a project", { requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProjectRequest" } } } } }),
     },
     "/projects/{projectId}": {
-      get: authenticated("Get one project", { parameters: [{ $ref: "#/components/parameters/projectId" }] }),
+      get: authenticated("Get one project", { parameters: [{ $ref: "#/components/parameters/projectId" }, { name: "includeBriefUrl", in: "query", schema: { type: "boolean", default: false }, description: "Mint a short-lived Project Brief URL only when it is about to be opened" }] }),
       put: authenticated("Update a project (Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProjectRequest" } } } } }),
       delete: authenticated("Delete a project and related data (Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }] }),
     },
@@ -121,6 +121,7 @@ const openapiSpecification = {
       post: authenticated("Create a task (Admin or Project Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }], requestBody: { required: true, content: { "multipart/form-data": { schema: { $ref: "#/components/schemas/TaskRequest" } } } } }),
     },
     "/tasks/{projectId}/due-summary": { get: authenticated("Get due-date summary for a project", { parameters: [{ $ref: "#/components/parameters/projectId" }] }) },
+    "/tasks/{projectId}/board": { get: authenticated("Load project tasks, members, due summary, and caller role in one request", { parameters: [{ $ref: "#/components/parameters/projectId" }] }) },
     "/tasks/{projectId}/t/{taskId}": {
       get: authenticated("Get task details and subtasks", { parameters: [{ $ref: "#/components/parameters/projectId" }, { $ref: "#/components/parameters/taskId" }] }),
       put: authenticated("Update task (Admin or Project Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }, { $ref: "#/components/parameters/taskId" }], requestBody: { content: { "multipart/form-data": { schema: { $ref: "#/components/schemas/TaskRequest" } } } } }),
@@ -148,6 +149,7 @@ const openapiSpecification = {
       delete: authenticated("Delete project note (Admin)", { parameters: [{ $ref: "#/components/parameters/projectId" }, { $ref: "#/components/parameters/noteId" }] }),
     },
     "/notifications": { get: authenticated("List current user's notifications") },
+    "/notifications/unread-count": { get: authenticated("Get current user's unread notification count") },
     "/notifications/{notificationId}/read": { patch: authenticated("Mark notification as read", { parameters: [{ $ref: "#/components/parameters/notificationId" }] }) },
   },
   components: {

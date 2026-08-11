@@ -27,10 +27,8 @@ export function AppLayout({
     document.body.classList.toggle("orbit-body-night", isNightTheme);
   }, [isNightTheme]);
   const loadUnreadNotifications = useCallback(() => {
-    api("/notifications")
-      .then((items) =>
-        setUnreadCount(items.filter((item) => !item.isRead).length),
-      )
+    api("/notifications/unread-count")
+      .then(({ count }) => setUnreadCount(count))
       .catch(() => {});
   }, []);
   useEffect(() => {

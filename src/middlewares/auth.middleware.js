@@ -18,7 +18,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const user = await User.findById(decodedToken?._id).select(
       "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
-    );
+    ).lean();
 
     if (!user) {
       throw new ApiError(401, "Invalid access token");
@@ -41,7 +41,7 @@ export const validateProjectPermission = (roles = []) => {
     const project = await ProjectMember.findOne({
       project: new mongoose.Types.ObjectId(projectId),
       user: new mongoose.Types.ObjectId(req.user._id),
-    });
+    }).select("role").lean();
 
     if (!project) {
       throw new ApiError(400, "project not found");
@@ -50,6 +50,7 @@ export const validateProjectPermission = (roles = []) => {
     const givenRole = project?.role;
 
     req.user.role = givenRole;
+    req.projectMembership = project;
 
     if (!roles.includes(givenRole)) {
       throw new ApiError(

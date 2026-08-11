@@ -14,6 +14,14 @@ const getMyNotifications = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, notifications, "Notifications fetched successfully"));
 });
 
+const getUnreadNotificationCount = asyncHandler(async (req, res) => {
+  const count = await Notification.countDocuments({
+    recipient: req.user._id,
+    isRead: false,
+  });
+  return res.status(200).json(new ApiResponse(200, { count }, "Unread notification count fetched"));
+});
+
 const markNotificationAsRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findOneAndUpdate(
     { _id: req.params.notificationId, recipient: req.user._id },
@@ -28,4 +36,4 @@ const markNotificationAsRead = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, notification, "Notification marked as read"));
 });
 
-export { getMyNotifications, markNotificationAsRead };
+export { getMyNotifications, getUnreadNotificationCount, markNotificationAsRead };

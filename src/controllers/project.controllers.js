@@ -38,15 +38,18 @@ const getProjects = asyncHandler(async (req, res) => {
           {
             $lookup: {
               from: "projectmembers",
-              localField: "_id",
-              foreignField: "project",
+              let: { projectId: "$_id" },
               as: "projectmembers",
+              pipeline: [
+                { $match: { $expr: { $eq: ["$project", "$$projectId"] } } },
+                { $count: "count" },
+              ],
             },
           },
           {
             $addFields: {
               members: {
-                $size: "$projectmembers",
+                $ifNull: [{ $arrayElemAt: ["$projectmembers.count", 0] }, 0],
               },
             },
           },
@@ -79,14 +82,15 @@ const getProjects = asyncHandler(async (req, res) => {
 
 const getProjectById = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const project = await Project.findById(projectId);
+  const project = await Project.findById(projectId).lean();
 
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
 
-  const data = project.toObject();
-  if (data.brief?.key) {
+  const data = { ...project };
+  data.role = req.user.role;
+  if (data.brief?.key && req.query.includeBriefUrl === "true") {
     data.brief.url = await getAttachmentUrl(data.brief.key, {
       mimetype: data.brief.mimetype,
       name: data.brief.name,
@@ -141,20 +145,21 @@ const getProjectProgress = asyncHandler(async (req, res) => {
 const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
-  const brief = req.file ? await uploadProjectBrief(req.file) : undefined;
-  const parsedBriefContext = req.file
-    ? await parseProjectBriefBufferForRag({
-      buffer: req.file.buffer,
-      mimetype: req.file.mimetype,
-      name: req.file.originalname,
-    })
-    : undefined;
+  const [brief, parsedBriefContext] = req.file
+    ? await Promise.all([
+      uploadProjectBrief(req.file),
+      parseProjectBriefBufferForRag({
+        buffer: req.file.buffer,
+        mimetype: req.file.mimetype,
+        name: req.file.originalname,
+      }),
+    ])
+    : [undefined, undefined];
   const hasBriefContext = Boolean(
     parsedBriefContext?.text || parsedBriefContext?.tables?.length || parsedBriefContext?.imageInsights,
   );
   const session = await mongoose.startSession();
   let project;
-
   try {
     await session.withTransaction(async () => {
       [project] = await Project.create(
@@ -447,55 +452,10 @@ const acceptProjectInvitation = asyncHandler(async (req, res) => {
 
 const getProjectMembers = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const project = await Project.findById(projectId);
-
-  if (!project) {
-    throw new ApiError(404, "Project not found");
-  }
-
-  const projectMembers = await ProjectMember.aggregate([
-    {
-      $match: {
-        project: new mongoose.Types.ObjectId(projectId),
-      },
-    },
-
-    {
-      $lookup: {
-        from: "users",
-        localField: "user",
-        foreignField: "_id",
-        as: "user",
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              username: 1,
-              fullName: 1,
-              avatar: 1,
-            },
-          },
-        ],
-      },
-    },
-    {
-      $addFields: {
-        user: {
-          $arrayElemAt: ["$user", 0],
-        },
-      },
-    },
-    {
-      $project: {
-        project: 1,
-        user: 1,
-        role: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        _id: 0,
-      },
-    },
-  ]);
+  const projectMembers = await ProjectMember.find({ project: projectId })
+    .select("project user role createdAt updatedAt -_id")
+    .populate("user", "username fullName avatar")
+    .lean();
 
   return res
     .status(200)

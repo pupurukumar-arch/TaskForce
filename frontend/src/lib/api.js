@@ -1,5 +1,6 @@
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
 let accessToken = ''
+let refreshPromise = null
 
 export const getToken = () => accessToken
 export const setToken = (token) => { accessToken = token || '' }
@@ -29,18 +30,32 @@ const storeTokens = (data) => {
   if (data?.accessToken) setToken(data.accessToken)
 }
 
+const refreshAccessToken = () => {
+  refreshPromise ||= request('/auth/refresh-token', { method: 'POST' })
+    .then(async (response) => {
+      const result = await parseResponse(response)
+      if (!response.ok || !result.data?.accessToken) {
+        clearToken()
+        return false
+      }
+      storeTokens(result.data)
+      return true
+    })
+    .finally(() => { refreshPromise = null })
+  return refreshPromise
+}
+
+export async function bootstrapCurrentUser() {
+  if (!getToken() && !(await refreshAccessToken())) return null
+  return api('/auth/current-user', { method: 'POST' })
+}
+
 export async function api(path, options = {}) {
   let response = await request(path, options, getToken())
   let result = await parseResponse(response)
 
   if (response.status === 401 && path !== '/auth/refresh-token') {
-    const refreshResponse = await request('/auth/refresh-token', {
-      method: 'POST',
-    })
-    const refreshResult = await parseResponse(refreshResponse)
-
-    if (refreshResponse.ok && refreshResult.data?.accessToken) {
-      storeTokens(refreshResult.data)
+    if (await refreshAccessToken()) {
       response = await request(path, options, getToken())
       result = await parseResponse(response)
     } else {

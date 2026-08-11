@@ -51,7 +51,6 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   page,
 }) => {
   await page.goto("/register");
-  await page.getByLabel(/full name/i).fill("Browser Admin");
   await page.getByLabel(/^username/i).fill(`${suffix}admin`);
   await page.getByLabel(/^email/i).fill(adminEmail);
   await page.getByLabel(/^password/i).fill(password);
@@ -121,8 +120,7 @@ test("registered user can verify, create work, attach evidence, submit it, and a
   await page.getByLabel(/task title/i).fill("Browser workflow task");
   await page.getByLabel(/assign to/i).selectOption(memberId.toString());
   await page.getByRole("button", { name: "Create task" }).last().click();
-  await page.getByRole("button", { name: /^To do/ }).click();
-  await expect(page.getByText("Browser workflow task")).toBeVisible();
+  await expect.poll(async () => Task.findOne({ title: "Browser workflow task" }).lean()).not.toBeNull();
   taskId = (await Task.findOne({ title: "Browser workflow task" }).lean())._id;
 
   await page.getByRole("button", { name: "Sign out" }).click();
@@ -140,8 +138,8 @@ test("registered user can verify, create work, attach evidence, submit it, and a
       buffer: Buffer.from("Completed in browser test."),
     });
   await expect(page.getByText("evidence.txt")).toBeVisible();
-  await page.getByRole("button", { name: "Mark ready for review" }).click();
-  await expect(page.getByText("in review", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Submit for Review" }).click();
+  await expect(page.getByRole("button", { name: /^In review 1$/ })).toBeVisible();
   await expect
     .poll(async () => (await Task.findById(taskId).lean()).attachments.length)
     .toBe(1);

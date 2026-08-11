@@ -9,6 +9,7 @@ import {
   getMyDeadlines,
   getMyCalendar,
   getTasks,
+  getProjectBoard,
   updateSubTask,
   updateTask,
   submitTaskForReview,
@@ -46,6 +47,10 @@ router.use(verifyJWT);
 
 router.route("/my-deadlines").get(getMyDeadlines);
 router.route("/my-calendar").get(getMyCalendar);
+
+router
+  .route("/:projectId/board")
+  .get(validateProjectPermission(AvailableUserRole), getProjectBoard);
 
 router
   .route("/:projectId")
