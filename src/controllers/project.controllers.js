@@ -232,7 +232,10 @@ const uploadProjectBriefFile = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, "Choose a Project Brief file first");
   const project = await Project.findById(req.params.projectId);
   if (!project) throw new ApiError(404, "Project not found");
-  const previousBrief = project.brief;
+  // Snapshot the old key before assigning the embedded brief document.
+  // Keeping the Mongoose subdocument reference can make it reflect the new
+  // value and accidentally delete the file that was just uploaded.
+  const previousBrief = project.brief?.key ? { key: project.brief.key } : null;
   project.brief = await uploadProjectBrief(req.file);
   const parsedBriefContext = await parseProjectBriefBufferForRag({
     buffer: req.file.buffer,
